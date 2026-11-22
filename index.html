@@ -206,6 +206,21 @@ a{font-weight:650}
  .field label{color:#e4ecfa}
 }
 
+/* Interactive coverage route map */
+.map-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+.map-track-wrap{overflow-x:auto;padding:22px 8px 14px;border-radius:16px;background:rgba(222,233,250,.42);border:1px solid rgba(150,174,212,.22);scrollbar-width:thin}
+.map-track{display:flex;align-items:flex-start;min-width:max-content;padding:12px 12px 6px}
+.map-stop{position:relative;display:flex;flex-direction:column;align-items:center;width:76px;min-height:90px;cursor:pointer;color:var(--page-ink,#17243b);font:inherit;background:none;border:0;box-shadow:none;padding:0 3px}
+.map-stop:before{content:"";position:absolute;top:11px;left:0;width:100%;height:5px;background:var(--route-color,#2864dc);z-index:0}
+.map-stop:first-child:before{left:50%;width:50%}.map-stop:last-child:before{width:50%}
+.map-stop .dot{z-index:1;width:22px;height:22px;border:4px solid var(--route-color,#2864dc);background:#fff;border-radius:50%;box-shadow:0 1px 5px #10203e30}
+.map-stop .station-label{font-size:11px;font-weight:750;line-height:1.35;margin-top:8px;max-width:74px;overflow-wrap:anywhere;text-align:center}
+.map-stop.selected .dot{background:#ffcf55;border-color:#142b52;transform:scale(1.15)}
+.map-status{padding:12px 14px;border-radius:12px;background:rgba(235,242,255,.75);margin-top:12px;font-size:13px;line-height:1.65}
+.map-status.ok{border:1px solid #7ac49b;color:#17633a}.map-status.check{border:1px solid #e2bf72;color:#775515}
+.map-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.map-legend span{font-size:11px;padding:5px 9px;border-radius:99px;background:rgba(128,145,170,.13)}
+@media(prefers-color-scheme:dark){.map-track-wrap{background:rgba(8,18,34,.42)}.map-stop{color:#edf3ff}.map-stop .dot{background:#eaf1ff}.map-status{background:rgba(20,34,57,.8)}}
+@media(max-width:640px){.map-toolbar{grid-template-columns:1fr}.map-stop{width:68px}.map-stop .station-label{font-size:10px}}
 </style></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -226,6 +241,14 @@ a{font-weight:650}
 <h2>② 乗車した区間</h2><div id="trips"></div>
 <div class="actions"><button class="soft" id="add">＋ 区間を追加</button><button class="soft" id="sample">サンプル</button></div>
 </section>
+<section class="card" id="coverageMap">
+<span class="tag">NETWORK MAP</span><h2>対象区間マップ</h2>
+<p class="hint">路線を選び、駅をタップして乗車駅・降車駅を指定できます。駅間データが登録されている区間は「計算対応」、未登録の区間は「要確認」と表示します。</p>
+<div class="map-toolbar"><div class="field"><label for="mapLine">路線を選択</label><select id="mapLine"></select></div><button class="soft" id="mapClear" type="button">選択をクリア</button></div>
+<div class="map-track-wrap" aria-label="駅を選択できる路線図"><div class="map-track" id="mapTrack"></div></div>
+<div class="map-status" id="mapStatus" aria-live="polite">路線を選択してください。</div>
+<div class="map-legend"><span>● 駅</span><span>黄色：選択中の駅</span><span>色付き線：路線</span></div>
+<p class="hint" style="margin-top:12px">※サイト内に登録された駅・区間データを表示する模式路線図です。実際の地理的位置や全列車の運転系統を正確な縮尺で表すものではありません。都営バスは停留所別データが未整備のため、路線図には含めず、対象範囲注記で扱います。</p></section>
 <section class="card">
 <h2>③ 結果</h2><div class="stats">
 <div class="stat"><small>通常運賃合計</small><b id="total">0円</b></div>
@@ -650,4 +673,34 @@ document.getElementById('save').onclick=()=>{
  const u=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'})),im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=1080;c.height=1350;c.getContext('2d').drawImage(im,0,0);URL.revokeObjectURL(u);c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='東京フリーきっぷ比較.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);},'image/png');};im.src=u;
 };
 createTrip();
+/* Interactive schematic coverage map */
+(function initCoverageMap(){
+ const mapLine=document.getElementById('mapLine'),mapTrack=document.getElementById('mapTrack'),mapStatus=document.getElementById('mapStatus');
+ const colors=['#80a943','#e66b45','#e2c43b','#39a6d8','#36a66a','#d65b75','#e87532','#4f9c62','#e67a43','#9aa7b5','#4e9caa','#4aa66d','#70b5a0','#c85b91','#f39700','#e8383d','#9ca7ad','#00a7db','#00a650','#c1a300','#8f76b5','#00a6a9','#9b5ba5','#e85289','#0072bc','#6cbb5a','#b6007a','#b6a06a','#d66b9c'];
+ const mapLines=Object.keys(stations).filter(x=>!x.startsWith('都営バス'));let fromName='',toName='';
+ mapLine.innerHTML=mapLines.map(x=>'<option value="'+x.replace(/"/g,'&quot;')+'">'+x+'</option>').join('');
+ function assess(){
+  const line=mapLine.value,a=fromName,b=toName;mapStatus.className='map-status';
+  if(!a||!b){mapStatus.textContent='駅を2つ選ぶと、区間の対応状況を判定します。';return;}
+  if(a===b){mapStatus.textContent='乗車駅と降車駅が同じです。別々の駅を選択してください。';return;}
+  let km=null,label='';
+  if(line.startsWith('JR')){km=jrDistanceAuto(line,a,b);label='営業キロ';}
+  else if(line.startsWith('東京メトロ')){km=metroDistance(line,a,b);label='営業キロ';}
+  else if(line.startsWith('都営地下鉄')){km=toeiDistanceAuto(line,a,b);label='距離';}
+  else if(line.startsWith('日暮里・舎人ライナー')){km=toneriDistance(a,b);label='駅間距離';}
+  else if(line.startsWith('東京さくらトラム')){km=0;label='均一運賃';}
+  if(km!==null){mapStatus.classList.add('ok');mapStatus.textContent='計算対応：'+line+'　'+a+' → '+b+(km>0?' ／ '+label+' '+km.toFixed(1)+'km':' ／ 均一運賃区間')+'。距離データが登録されています。';}
+  else{mapStatus.classList.add('check');mapStatus.textContent='要確認：'+line+'　'+a+' → '+b+'。区間データが未登録、または別系統のため自動計算できない可能性があります。';}
+ }
+ function render(){
+  const line=mapLine.value,list=(stations[line]||'').split(','),idx=mapLines.indexOf(line),color=colors[idx%colors.length];mapTrack.innerHTML='';
+  list.forEach(name=>{
+   const btn=document.createElement('button');btn.type='button';btn.className='map-stop'+((name===fromName||name===toName)?' selected':'');btn.style.setProperty('--route-color',color);btn.setAttribute('aria-label',name+'を選択');
+   const dot=document.createElement('span');dot.className='dot';const label=document.createElement('span');label.className='station-label';label.textContent=name;btn.append(dot,label);
+   btn.addEventListener('click',()=>{if(!fromName||(fromName&&toName)){fromName=name;toName='';}else if(name===fromName){fromName='';toName='';}else{toName=name;}render();assess();});mapTrack.append(btn);
+  });assess();
+ }
+ mapLine.addEventListener('change',()=>{fromName='';toName='';render();});
+ document.getElementById('mapClear').addEventListener('click',()=>{fromName='';toName='';render();});render();
+})();
 </script></body></html>
