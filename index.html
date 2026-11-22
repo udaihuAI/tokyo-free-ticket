@@ -223,6 +223,31 @@ a{font-weight:650}
 @media(max-width:640px){.map-toolbar{grid-template-columns:1fr}.map-stop{width:68px}.map-stop .station-label{font-size:10px}}
 
 .app-nav{display:flex;gap:10px;flex-wrap:wrap;max-width:1400px;margin:22px auto 0;padding:0 16px}.app-nav-btn{background:rgba(255,255,255,.72);color:var(--ink);border:1px solid rgba(130,155,195,.35)}.app-nav-btn.active{background:linear-gradient(135deg,#3979ef,#2857c5);color:white}.app-layout{max-width:1400px;margin:auto;padding:0 16px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}.app-layout.both{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.app-panel{min-width:0}.app-panel[hidden]{display:none!important}@media(max-width:850px){.app-layout.both{grid-template-columns:1fr}}@media(prefers-color-scheme:dark){.app-nav-btn{background:rgba(22,38,63,.86);color:#edf3ff;border-color:rgba(177,201,244,.18)}}
+
+/* Glass rail explorer additions */
+.rail-shell{display:grid;gap:14px}
+.rail-tabs{display:flex;gap:8px;flex-wrap:wrap;padding:7px;border:1px solid var(--glass-border);border-radius:16px;background:var(--glass-soft)}
+.rail-tab{flex:1;min-width:110px;background:transparent;color:var(--page-ink);box-shadow:none;border:1px solid transparent}
+.rail-tab.active{background:linear-gradient(135deg,#3979ef,#7258d6);color:white;box-shadow:0 7px 18px #326de544}
+.rail-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rail-network{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;max-height:560px;overflow:auto;padding:4px}
+.rail-line-card{border:1px solid var(--glass-border);background:var(--glass-soft);border-radius:15px;padding:12px;min-width:0}
+.rail-line-title{font-size:13px;font-weight:850;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+.rail-color{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.rail-stations{display:flex;flex-wrap:wrap;gap:5px}
+.rail-station{font-size:11px;padding:5px 8px;border:1px solid var(--glass-border);border-radius:999px;background:var(--glass);color:var(--page-ink);box-shadow:none}
+.rail-station.transfer{outline:1px solid #e5b84c}
+.rail-station.selected{background:#326de5;color:#fff}
+.rail-results{display:grid;gap:9px}
+.rail-result{padding:13px;border:1px solid var(--glass-border);border-radius:15px;background:var(--glass-soft)}
+.rail-result-top{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.rail-badge{font-size:11px;padding:4px 8px;border-radius:99px;background:rgba(87,139,225,.16)}
+.rail-segment{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px;flex-wrap:wrap}
+.rail-segment-line{height:5px;min-width:28px;flex:1;border-radius:9px}
+.rail-muted{font-size:12px;color:var(--page-muted)}
+.rail-favorites{display:flex;gap:7px;flex-wrap:wrap}
+.rail-empty{padding:22px;text-align:center;border:1px dashed var(--field-border);border-radius:14px;color:var(--page-muted)}
+@media(max-width:640px){.rail-controls{grid-template-columns:1fr}.rail-tab{min-width:calc(50% - 8px)}}
 </style></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -258,12 +283,39 @@ a{font-weight:650}
 <p class="hint">都営地下鉄・日暮里舎人ライナーは東京都交通局の公式紙運賃表を基準に計算します。日暮里・舎人ライナーの駅間距離は東京都交通局の公式キロ程表から計算します。都営地下鉄は自動距離計算を実装しましたが、駅間データは公式キロ程表との全区間照合が未完了のため、運賃は参考値として扱ってください。蔵前・東日本橋／馬喰横山の乗換を含む場合は、公式注記どおり別運賃になる場合があります。確認用公式資料：<a href="https://www.tokyometro.jp/ticket/terms/pdf/ryokyaku_eigyo_260314.pdf" target="_blank">東京メトロ旅客営業規程・営業キロ程表（2026年3月14日改定）</a> ／ <a href="https://www.tokyometro.jp/ticket/types/regular/index.html" target="_blank">東京メトロ普通券運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/bus/fare/regular.html" target="_blank">都営バス普通運賃</a> ／ <a href="https://www.jreast.co.jp/2026unchin-kaitei/pamphlet/pageindices/index8.html" target="_blank">JR東日本 2026年改定後の普通運賃表</a> ／ <a href="https://www.jreast.co.jp/multi/pass/tokyo_free.html" target="_blank">JR東日本 東京フリーきっぷ</a> ／ <a href="https://www.tokyometro.jp/ticket/types/regular/index.html" target="_blank">東京メトロ普通券運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/subway/fare/regular.html" target="_blank">都営地下鉄普通運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/service/pdf/13sanko.pdf" target="_blank">都営地下鉄普通運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/service/toden.html" target="_blank">東京さくらトラム概要</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/information/statistics/pdf/statistics_2024_08.pdf" target="_blank">東京都交通局 参考資料（駅間キロ程・運賃表）</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/nippori_toneri/fare/regular.html" target="_blank">日暮里・舎人ライナー普通運賃</a></p>
 </section>
 </div><div id="mapAppPanel" class="app-panel" hidden><section class="card" id="coverageMap">
-<span class="tag">NETWORK MAP</span><h2>対象区間マップ</h2>
-<p class="hint">路線を選び、駅をタップして乗車駅・降車駅を指定できます。駅間データが登録されている区間は「計算対応」、未登録の区間は「要確認」と表示します。</p>
-<div class="map-toolbar"><div class="field"><label for="mapLine">路線を選択</label><select id="mapLine"></select></div><button class="soft" id="mapClear" type="button">選択をクリア</button></div>
-<div class="map-track-wrap" aria-label="駅を選択できる路線図"><div class="map-track" id="mapTrack"></div></div>
-<div class="map-status" id="mapStatus" aria-live="polite">路線を選択してください。</div>
-<div class="map-legend"><span>● 駅</span><span>黄色：選択中の駅</span><span>色付き線：路線</span></div>
+<span class="tag">RAIL NETWORK EXPLORER</span><h2>東京鉄道ネットワーク</h2><p class="hint">路線網を眺める・路線を選ぶ・駅から接続路線を探す・経路を比較する機能をまとめました。</p>
+<div class="rail-shell" id="railExplorer">
+ <div class="rail-tabs" role="tablist" aria-label="マップ表示">
+  <button class="rail-tab active" type="button" data-rail-view="network">ネットワーク</button>
+  <button class="rail-tab" type="button" data-rail-view="route">路線別</button>
+  <button class="rail-tab" type="button" data-rail-view="station">駅別</button>
+  <button class="rail-tab" type="button" data-rail-view="transfer">乗り換え検索</button>
+ </div>
+ <div class="rail-controls">
+  <div class="field"><label for="railCompany">鉄道会社フィルター</label><select id="railCompany"><option value="all">すべて表示</option><option value="jr">JR</option><option value="metro">東京メトロ</option><option value="toei">都営地下鉄</option><option value="other">その他</option></select></div>
+  <div class="field"><label for="railSearch">駅名検索</label><input id="railSearch" placeholder="駅名を入力"></div>
+  <div class="field"><label for="railFavoritesSelect">お気に入り</label><select id="railFavoritesSelect"><option value="">お気に入り駅を選択</option></select></div>
+ </div>
+ <div class="rail-favorites" id="railFavorites"></div>
+ <div id="railNetworkView"><div class="rail-network" id="railNetwork"></div><p class="rail-muted">登録済みの路線・駅データを路線ごとに表示する模式ネットワークです。地理的な位置や実際の全運転系統を示すものではありません。</p></div>
+ <div id="railRouteView" hidden>
+  <div class="map-toolbar"><div class="field"><label for="mapLine">路線を選択</label><select id="mapLine"></select></div><button class="soft" id="mapClear" type="button">選択をクリア</button></div>
+  <div class="map-track-wrap" aria-label="駅を選択できる路線図"><div class="map-track" id="mapTrack"></div></div>
+  <div class="map-status" id="mapStatus" aria-live="polite">路線を選択してください。</div>
+  <div class="map-legend"><span>● 駅</span><span>黄色：選択中の駅</span><span>色付き線：路線</span></div>
+ </div>
+ <div id="railStationView" hidden>
+  <div class="field"><label for="railStationSelect">駅を選択</label><select id="railStationSelect"><option value="">駅を選択</option></select></div>
+  <div class="rail-results" id="railStationResults"></div>
+ </div>
+ <div id="railTransferView" hidden>
+  <div class="grid"><div class="field"><label for="railFrom">出発駅</label><input id="railFrom" list="railStationList" placeholder="例：新宿"></div><div class="field"><label for="railTo">到着駅</label><input id="railTo" list="railStationList" placeholder="例：東京"></div></div>
+  <datalist id="railStationList"></datalist>
+  <div class="actions"><button class="primary" id="railFind" type="button">経路を検索</button><button class="soft" id="railSwap" type="button">駅を入れ替え</button></div>
+  <div class="rail-results" id="railTransferResults"><div class="rail-empty">出発駅と到着駅を入力してください。</div></div>
+  <p class="rail-muted">経路は登録済み路線データから作る参考ルートです。所要時間は駅間・乗換の概算で、時刻表・列車種別・構内の実測移動時間を反映しません。データ未登録の区間は検索できない場合があります。</p>
+ </div>
+</div>
 <p class="hint" style="margin-top:12px">※サイト内に登録された駅・区間データを表示する模式路線図です。実際の地理的位置や全列車の運転系統を正確な縮尺で表すものではありません。都営バスは停留所別データが未整備のため、路線図には含めず、対象範囲注記で扱います。</p></section></div></div></main><script>
 const stations={
 "JR山手線":"大崎,五反田,目黒,恵比寿,渋谷,原宿,代々木,新宿,新大久保,高田馬場,目白,池袋,大塚,巣鴨,駒込,田端,西日暮里,日暮里,鶯谷,上野,御徒町,秋葉原,神田,東京,有楽町,新橋,浜松町,田町,高輪ゲートウェイ,品川",
@@ -706,4 +758,35 @@ createTrip();
  document.getElementById('mapClear').addEventListener('click',()=>{fromName='';toName='';render();});render();
 })();
 
-(function(){const layout=document.getElementById('appLayout'),calc=document.getElementById('calculatorPanel'),map=document.getElementById('mapAppPanel');document.querySelectorAll('.app-nav-btn').forEach(btn=>btn.addEventListener('click',()=>{const mode=btn.dataset.screen;layout.classList.toggle('both',mode==='both');calc.hidden=mode==='map';map.hidden=mode==='calculator';document.querySelectorAll('.app-nav-btn').forEach(b=>b.classList.toggle('active',b===btn));}));})();</script></body></html>
+(function(){const layout=document.getElementById('appLayout'),calc=document.getElementById('calculatorPanel'),map=document.getElementById('mapAppPanel');document.querySelectorAll('.app-nav-btn').forEach(btn=>btn.addEventListener('click',()=>{const mode=btn.dataset.screen;layout.classList.toggle('both',mode==='both');calc.hidden=mode==='map';map.hidden=mode==='calculator';document.querySelectorAll('.app-nav-btn').forEach(b=>b.classList.toggle('active',b===btn));}));})();</script>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const colors=['#80a943','#e66b45','#e2c43b','#39a6d8','#36a66a','#d65b75','#e87532','#4f9c62','#e67a43','#9aa7b5','#4e9caa','#4aa66d','#70b5a0','#c85b91','#f39700','#e8383d','#9ca7ad','#00a7db','#00a650','#c1a300','#8f76b5','#00a6a9','#9b5ba5','#e85289','#0072bc','#6cbb5a','#b6007a','#b6a06a','#d66b9c'];
+ const lines=Object.keys(stations).filter(n=>!n.startsWith('都営バス'));
+ const colorOf=n=>colors[lines.indexOf(n)%colors.length]||'#6688bb';
+ const company=n=>n.startsWith('JR')?'jr':n.startsWith('東京メトロ')?'metro':n.startsWith('都営地下鉄')?'toei':'other';
+ const allStations=[...new Set(lines.flatMap(n=>(stations[n]||'').split(',').filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'ja'));
+ const interchange=new Map(); allStations.forEach(st=>interchange.set(st,lines.filter(n=>(stations[n]||'').split(',').includes(st))));
+ let favorites=[];try{favorites=JSON.parse(localStorage.getItem('tokyoRailFavorites')||'[]')}catch(e){}
+ const stationInput=$('railStationSelect'), stationResults=$('railStationResults'), network=$('railNetwork');
+ function visibleLines(){const c=$('railCompany').value,q=$('railSearch').value.trim();return lines.filter(n=>(c==='all'||company(n)===c)&&(!q||(n.includes(q)||(stations[n]||'').includes(q))));}
+ function stationButton(st){const b=document.createElement('button');b.type='button';b.className='rail-station'+((interchange.get(st)||[]).length>1?' transfer':'');b.textContent=st;b.title=(interchange.get(st)||[]).join(' / ');b.addEventListener('click',()=>{stationInput.value=st;renderStation();$('railStationSelect').value=st;});return b;}
+ function renderNetwork(){network.innerHTML='';visibleLines().forEach(n=>{const card=document.createElement('div');card.className='rail-line-card';const title=document.createElement('div');title.className='rail-line-title';const dot=document.createElement('i');dot.className='rail-color';dot.style.background=colorOf(n);title.append(dot,document.createTextNode(n));const list=document.createElement('div');list.className='rail-stations';(stations[n]||'').split(',').filter(Boolean).forEach(st=>list.append(stationButton(st)));card.append(title,list);network.append(card);});if(!network.children.length)network.innerHTML='<div class="rail-empty">該当する路線がありません。</div>';}
+ function renderStation(){const st=stationInput.value;stationResults.innerHTML='';if(!st){stationResults.innerHTML='<div class="rail-empty">駅を選択してください。</div>';return;}const ls=interchange.get(st)||[];const top=document.createElement('div');top.className='rail-result';top.innerHTML='<b>'+st+'</b><p class="rail-muted">'+(ls.length>1?'乗り換え可能な路線：'+ls.length+'路線':'登録路線：1路線')+'</p>';const save=document.createElement('button');save.className='soft';save.type='button';save.textContent=favorites.includes(st)?'★ お気に入り解除':'☆ お気に入りに追加';save.addEventListener('click',()=>{favorites=favorites.includes(st)?favorites.filter(x=>x!==st):[...favorites,st];try{localStorage.setItem('tokyoRailFavorites',JSON.stringify(favorites))}catch(e){}renderFavorites();renderStation();});top.append(save);stationResults.append(top);ls.forEach(n=>{const row=document.createElement('div');row.className='rail-result';row.innerHTML='<span class="rail-color" style="background:'+colorOf(n)+'"></span> <b>'+n+'</b>';stationResults.append(row);});}
+ function renderFavorites(){const box=$('railFavorites'),sel=$('railFavoritesSelect');box.innerHTML='';sel.innerHTML='<option value="">お気に入り駅を選択</option>';favorites.forEach(st=>{const opt=document.createElement('option');opt.value=st;opt.textContent=st;sel.append(opt);const b=document.createElement('button');b.type='button';b.className='rail-station';b.textContent='★ '+st;b.addEventListener('click',()=>{stationInput.value=st;$('railStationSelect').value=st;show('station');renderStation();});box.append(b);});}
+ allStations.forEach(st=>{const o=document.createElement('option');o.value=st;$('railStationList').append(o);const p=document.createElement('option');p.value=st;p.textContent=st;stationInput.append(p);});
+ function show(view){['network','route','station','transfer'].forEach(v=>$('rail'+v[0].toUpperCase()+v.slice(1)+'View').hidden=v!==view);document.querySelectorAll('.rail-tab').forEach(b=>b.classList.toggle('active',b.dataset.railView===view));}
+ document.querySelectorAll('.rail-tab').forEach(b=>b.addEventListener('click',()=>show(b.dataset.railView)));
+ $('railCompany').addEventListener('change',renderNetwork);$('railSearch').addEventListener('input',()=>{renderNetwork();const q=$('railSearch').value.trim();if(allStations.includes(q)){stationInput.value=q;$('railStationSelect').value=q;renderStation();}});$('railStationSelect').addEventListener('change',renderStation);$('railFavoritesSelect').addEventListener('change',e=>{if(e.target.value){stationInput.value=e.target.value;show('station');renderStation();}});
+ renderFavorites();renderNetwork();
+ // Build an interchange graph from consecutive registered stops; transfer links are inferred only at identically named stations.
+ const graph=new Map();allStations.forEach(st=>graph.set(st,[]));
+ lines.forEach(line=>{const arr=(stations[line]||'').split(',').filter(Boolean);for(let i=0;i<arr.length-1;i++){graph.get(arr[i]).push({to:arr[i+1],line,minutes:Math.max(2,Math.round((line.startsWith('JR')?3:2.5)))});graph.get(arr[i+1]).push({to:arr[i],line,minutes:Math.max(2,Math.round((line.startsWith('JR')?3:2.5)))});}});
+ function routes(from,to){if(!graph.has(from)||!graph.has(to)||from===to)return[];const queue=[{st:from,line:null,path:[from],legs:[],time:0,transfers:0}];const found=[];let expansions=0;while(queue.length&&found.length<8&&expansions++<9000){queue.sort((a,b)=>a.time-b.time);const cur=queue.shift();if(cur.st===to){found.push(cur);continue;}if(cur.path.length>35)continue;for(const e of graph.get(cur.st)||[]){if(cur.path.includes(e.to))continue;const change=cur.line&&cur.line!==e.line;const time=cur.time+e.minutes+(change?5:0);queue.push({st:e.to,line:e.line,path:[...cur.path,e.to],legs:[...cur.legs,{from:cur.st,to:e.to,line:e.line,change}],time,transfers:cur.transfers+(change?1:0)});}}return found.sort((a,b)=>a.time-b.time||a.transfers-b.transfers).filter((r,i,a)=>a.findIndex(x=>x.path.join('|')===r.path.join('|'))===i).slice(0,3);}
+ function renderRoutes(){const from=$('railFrom').value.trim(),to=$('railTo').value.trim(),box=$('railTransferResults');box.innerHTML='';const found=routes(from,to);if(!found.length){box.innerHTML='<div class="rail-empty">経路が見つかりません。駅名の表記や登録区間を確認してください。</div>';return;}found.forEach((r,i)=>{const card=document.createElement('div');card.className='rail-result';const top=document.createElement('div');top.className='rail-result-top';const name=document.createElement('b');name.textContent='候補 '+(i+1);const badge=document.createElement('span');badge.className='rail-badge';badge.textContent=r.transfers+'回乗換';top.append(name,badge);const time=document.createElement('h3');time.textContent='約'+r.time+'分';const detail=document.createElement('div');detail.className='rail-muted';detail.textContent=r.legs.map(x=>x.line+'：'+x.from+' → '+x.to).join('　／　');const stationsRow=document.createElement('p');stationsRow.textContent=r.path.join(' → ');stationsRow.style.fontSize='12px';card.append(top,time,detail,stationsRow);card.addEventListener('click',()=>{show('route');const first=r.legs[0];$('mapLine').value=first.line;$('mapLine').dispatchEvent(new Event('change'));});box.append(card);});}
+ $('railFind').addEventListener('click',renderRoutes);$('railSwap').addEventListener('click',()=>{const a=$('railFrom').value;$('railFrom').value=$('railTo').value;$('railTo').value=a;});
+ // Route list and legacy route map stay connected; keep the original fare calculator and its map-selection logic intact.
+ $('mapLine').addEventListener('change',()=>{});
+})();
+</script></body></html>
