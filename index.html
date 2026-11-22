@@ -246,11 +246,13 @@ a{font-weight:650}
 @media(prefers-color-scheme:dark){.map-network-scroll,.map-track-wrap{background:rgba(8,18,34,.55)}.net-node text{fill:#e7efff;stroke:rgba(9,19,35,.92)}.net-node circle{fill:#182b49;stroke:#dce8ff}.map-status{background:rgba(20,34,57,.8)}.map-tab{color:#e8f0ff}}
 @media(max-width:640px){.map-tabs .map-tab{flex:1 1 30%;padding:10px 8px;font-size:12px}.map-stop{width:68px}.map-stop .station-label{font-size:10px}}
 
+
+.app-nav{display:flex;gap:10px;flex-wrap:wrap;max-width:1400px;margin:22px auto 0;padding:0 16px}.app-nav-btn{background:rgba(255,255,255,.72);color:var(--ink);border:1px solid rgba(130,155,195,.35)}.app-nav-btn.active{background:linear-gradient(135deg,#3979ef,#2857c5);color:white}.app-layout{max-width:1400px;margin:auto;padding:0 16px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}.app-layout.both{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.app-panel{min-width:0}.app-panel>section.card{margin-bottom:16px}.app-panel[hidden]{display:none!important}@media(max-width:850px){.app-layout.both{grid-template-columns:1fr}}@media(prefers-color-scheme:dark){.app-nav-btn{background:rgba(22,38,63,.86);color:#edf3ff;border-color:rgba(177,201,244,.18)}}
 </style></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
 <main class="wrap">
-<section class="card" style="border-color:#e5bd69;background:#fffaf0">
+<nav class="app-nav" aria-label="画面切り替え"><button type="button" class="app-nav-btn active" data-screen="calculator">元取りチェッカー</button><button type="button" class="app-nav-btn" data-screen="map">対象区間マップ</button><button type="button" class="app-nav-btn" data-screen="both">両方表示</button></nav><div class="app-layout" id="appLayout"><div id="calculatorPanel" class="app-panel"><section class="card" style="border-color:#e5bd69;background:#fffaf0">
 <strong>更新：東京メトロ全9路線（丸ノ内線方南町支線を含む）を対象に、登録済みの駅間距離データから自動計算します。区間データが未登録の場合は推測せず、計算を保留します。</strong>
 <p class="hint" style="margin:6px 0 0;color:#765719">都営バスは23区内の一般系統（大人210円・小児110円）、学バス（大人180円・小児90円）、C・H01系統（大人190円・小児100円）を1乗車ごとに計上できます。江東01は東京フリーきっぷ対象外です。多摩地域・深夜バスは未対応です。</p>
 </section>
@@ -266,7 +268,21 @@ a{font-weight:650}
 <h2>② 乗車した区間</h2><div id="trips"></div>
 <div class="actions"><button class="soft" id="add">＋ 区間を追加</button><button class="soft" id="sample">サンプル</button></div>
 </section>
-<section class="card" id="coverageMap">
+
+<section class="card">
+<h2>③ 結果</h2><div class="stats">
+<div class="stat"><small>通常運賃合計</small><b id="total">0円</b></div>
+<div class="stat"><small>フリーパス価格</small><b id="pass">1,720円</b></div>
+<div class="stat"><small>差額</small><b id="diff">−1,720円</b></div>
+</div><div class="verdict" id="verdict">区間を登録してみよう！</div>
+<div class="actions"><button class="primary" id="save">結果をPNG画像で保存</button><button class="soft" id="reset">リセット</button></div>
+</section>
+<section class="card">
+<h2>運賃データについて</h2>
+<div class="warn"><b>v10の対象：</b>東京メトロ9路線、都営地下鉄4路線、東京さくらトラム、日暮里・舎人ライナーが対象です。日暮里・舎人ライナーは東京都交通局の駅間キロ程・紙のきっぷ運賃を反映し、駅選択だけで距離と運賃を自動計算します。都営地下鉄4路線は乗車駅・降車駅を選ぶと駅間データから最短経路距離を自動計算し、紙のきっぷ運賃を表示します。ただし、現時点の駅間データは公式キロ程表との全区間照合が未完了のため参考値です。都営バスは23区内一般系統の1乗車運賃を追加。停留所別の路線・運賃検索と多摩地域は未実装です。</div>
+<p class="hint">都営地下鉄・日暮里舎人ライナーは東京都交通局の公式紙運賃表を基準に計算します。日暮里・舎人ライナーの駅間距離は東京都交通局の公式キロ程表から計算します。都営地下鉄は自動距離計算を実装しましたが、駅間データは公式キロ程表との全区間照合が未完了のため、運賃は参考値として扱ってください。蔵前・東日本橋／馬喰横山の乗換を含む場合は、公式注記どおり別運賃になる場合があります。確認用公式資料：<a href="https://www.tokyometro.jp/ticket/terms/pdf/ryokyaku_eigyo_260314.pdf" target="_blank">東京メトロ旅客営業規程・営業キロ程表（2026年3月14日改定）</a> ／ <a href="https://www.tokyometro.jp/ticket/types/regular/index.html" target="_blank">東京メトロ普通券運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/bus/fare/regular.html" target="_blank">都営バス普通運賃</a> ／ <a href="https://www.jreast.co.jp/2026unchin-kaitei/pamphlet/pageindices/index8.html" target="_blank">JR東日本 2026年改定後の普通運賃表</a> ／ <a href="https://www.jreast.co.jp/multi/pass/tokyo_free.html" target="_blank">JR東日本 東京フリーきっぷ</a> ／ <a href="https://www.tokyometro.jp/ticket/types/regular/index.html" target="_blank">東京メトロ普通券運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/subway/fare/regular.html" target="_blank">都営地下鉄普通運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/service/pdf/13sanko.pdf" target="_blank">都営地下鉄普通運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/service/toden.html" target="_blank">東京さくらトラム概要</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/information/statistics/pdf/statistics_2024_08.pdf" target="_blank">東京都交通局 参考資料（駅間キロ程・運賃表）</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/nippori_toneri/fare/regular.html" target="_blank">日暮里・舎人ライナー普通運賃</a></p>
+</section>
+</div><div id="mapAppPanel" class="app-panel" hidden><section class="card" id="coverageMap">
 <span class="tag">NETWORK MAP</span><h2>対象区間マップ</h2>
 <p class="hint">ネットワーク図では路線同士のつながりと乗換駅を確認できます。駅を選択すると、利用できる路線と区間データの登録状況を表示します。</p>
 <div class="map-tabs" role="group" aria-label="マップ表示切替">
@@ -285,21 +301,7 @@ a{font-weight:650}
 <div class="map-status" id="mapStatus" aria-live="polite">駅を選択すると、区間の対応状況を確認できます。</div>
 <div class="map-legend"><span>● 駅</span><span>黄色：選択中</span><span>二重丸：複数路線の乗換駅</span></div>
 <p class="hint" style="margin-top:12px">※JR・東京メトロ・都営地下鉄・日暮里・舎人ライナー・東京さくらトラムの登録駅を表示。都営バスは停留所別データが未整備のため図には含めていません。未登録区間の運賃は推測しません。</p>
-</section>
-<section class="card">
-<h2>③ 結果</h2><div class="stats">
-<div class="stat"><small>通常運賃合計</small><b id="total">0円</b></div>
-<div class="stat"><small>フリーパス価格</small><b id="pass">1,720円</b></div>
-<div class="stat"><small>差額</small><b id="diff">−1,720円</b></div>
-</div><div class="verdict" id="verdict">区間を登録してみよう！</div>
-<div class="actions"><button class="primary" id="save">結果をPNG画像で保存</button><button class="soft" id="reset">リセット</button></div>
-</section>
-<section class="card">
-<h2>運賃データについて</h2>
-<div class="warn"><b>v10の対象：</b>東京メトロ9路線、都営地下鉄4路線、東京さくらトラム、日暮里・舎人ライナーが対象です。日暮里・舎人ライナーは東京都交通局の駅間キロ程・紙のきっぷ運賃を反映し、駅選択だけで距離と運賃を自動計算します。都営地下鉄4路線は乗車駅・降車駅を選ぶと駅間データから最短経路距離を自動計算し、紙のきっぷ運賃を表示します。ただし、現時点の駅間データは公式キロ程表との全区間照合が未完了のため参考値です。都営バスは23区内一般系統の1乗車運賃を追加。停留所別の路線・運賃検索と多摩地域は未実装です。</div>
-<p class="hint">都営地下鉄・日暮里舎人ライナーは東京都交通局の公式紙運賃表を基準に計算します。日暮里・舎人ライナーの駅間距離は東京都交通局の公式キロ程表から計算します。都営地下鉄は自動距離計算を実装しましたが、駅間データは公式キロ程表との全区間照合が未完了のため、運賃は参考値として扱ってください。蔵前・東日本橋／馬喰横山の乗換を含む場合は、公式注記どおり別運賃になる場合があります。確認用公式資料：<a href="https://www.tokyometro.jp/ticket/terms/pdf/ryokyaku_eigyo_260314.pdf" target="_blank">東京メトロ旅客営業規程・営業キロ程表（2026年3月14日改定）</a> ／ <a href="https://www.tokyometro.jp/ticket/types/regular/index.html" target="_blank">東京メトロ普通券運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/bus/fare/regular.html" target="_blank">都営バス普通運賃</a> ／ <a href="https://www.jreast.co.jp/2026unchin-kaitei/pamphlet/pageindices/index8.html" target="_blank">JR東日本 2026年改定後の普通運賃表</a> ／ <a href="https://www.jreast.co.jp/multi/pass/tokyo_free.html" target="_blank">JR東日本 東京フリーきっぷ</a> ／ <a href="https://www.tokyometro.jp/ticket/types/regular/index.html" target="_blank">東京メトロ普通券運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/subway/fare/regular.html" target="_blank">都営地下鉄普通運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/service/pdf/13sanko.pdf" target="_blank">都営地下鉄普通運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/service/toden.html" target="_blank">東京さくらトラム概要</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/information/statistics/pdf/statistics_2024_08.pdf" target="_blank">東京都交通局 参考資料（駅間キロ程・運賃表）</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/nippori_toneri/fare/regular.html" target="_blank">日暮里・舎人ライナー普通運賃</a></p>
-</section>
-</main><script>
+</section><section class="card" id="transferTool"><span class="tag">TRANSFER TIME</span><h2>駅ごとの乗り換え時間目安</h2><p class="hint">乗り換え駅での路線間移動と、駅名が異なる駅どうしの徒歩移動の目安を確認できます。時間は参考値で、実際の経路・混雑などにより変わります。</p><div class="grid"><div class="field"><label for="transferFrom">出発駅</label><select id="transferFrom"></select></div><div class="field"><label for="transferTo">到着駅</label><select id="transferTo"></select></div><div class="field"><label for="transferKind">移動の種類</label><select id="transferKind"><option value="same">同じ駅構内で乗り換え</option><option value="nearby">別の駅まで徒歩移動</option><option value="custom">自分で時間を設定</option></select></div><div class="field"><label for="transferMinutes">所要時間（分）</label><input id="transferMinutes" type="number" min="1" max="120" value="5"></div></div><div class="map-status" id="transferStatus" aria-live="polite">駅を選ぶと目安時間を表示します。</div><p class="hint">※初期値は簡易目安です。公式の乗換案内・駅構内図の所要時間を保証するものではありません。</p></section></div></div><script>
 const stations={
 "JR山手線":"大崎,五反田,目黒,恵比寿,渋谷,原宿,代々木,新宿,新大久保,高田馬場,目白,池袋,大塚,巣鴨,駒込,田端,西日暮里,日暮里,鶯谷,上野,御徒町,秋葉原,神田,東京,有楽町,新橋,浜松町,田町,高輪ゲートウェイ,品川",
 "JR中央線快速":"東京,神田,御茶ノ水,四ツ谷,新宿,中野,高円寺,阿佐ケ谷,荻窪,西荻窪",
@@ -792,4 +794,6 @@ createTrip();
  mapLine.addEventListener('change',()=>{fromName='';toName='';render();});
  document.getElementById('mapClear').addEventListener('click',()=>{fromName='';toName='';render();});render();
 })();
-</script></body></html>
+
+(function(){const layout=document.getElementById('appLayout'),calc=document.getElementById('calculatorPanel'),map=document.getElementById('mapAppPanel');document.querySelectorAll('.app-nav-btn').forEach(btn=>btn.addEventListener('click',()=>{const mode=btn.dataset.screen;layout.classList.toggle('both',mode==='both');calc.hidden=mode==='map';map.hidden=mode==='calculator';document.querySelectorAll('.app-nav-btn').forEach(b=>b.classList.toggle('active',b===btn));}));})();
+(function(){const from=document.getElementById('transferFrom'),to=document.getElementById('transferTo'),kind=document.getElementById('transferKind'),mins=document.getElementById('transferMinutes'),status=document.getElementById('transferStatus');const all=[...new Set(Object.keys(stations).filter(x=>!x.startsWith('都営バス')).flatMap(line=>(stations[line]||'').split(',').filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'ja'));[from,to].forEach(sel=>{sel.innerHTML='<option value="">駅を選択</option>'+all.map(n=>'<option>'+n+'</option>').join('');});const busy={'東京':8,'新宿':8,'渋谷':7,'池袋':7,'大手町':7,'上野':6,'品川':6,'日比谷':6,'霞ケ関':6,'新橋':5,'飯田橋':5,'秋葉原':5,'北千住':5,'御茶ノ水':5,'赤坂見附':5,'永田町':7,'国会議事堂前':7,'溜池山王':7,'青山一丁目':5,'表参道':5,'日本橋':5,'三越前':6,'蔵前':5,'浅草':5};function refresh(){if(!from.value||!to.value){status.textContent='出発駅と到着駅を選択してください。';return;}if(from.value===to.value){kind.value='same';mins.value=busy[from.value]||5;status.textContent=from.value+'駅での路線間乗り換え：目安 '+mins.value+' 分。';return;}if(kind.value==='same')kind.value='nearby';if(kind.value==='nearby')mins.value=Math.max(5,Math.min(15,Math.round(((busy[from.value]||5)+(busy[to.value]||5))/2)+3));status.textContent=from.value+'駅 → '+to.value+'駅：徒歩移動の簡易目安 '+mins.value+' 分。';}[from,to,kind].forEach(el=>el.addEventListener('change',refresh));mins.addEventListener('input',()=>{if(from.value&&to.value)status.textContent='設定した所要時間：'+mins.value+' 分（目安）。';});})();</script></body></html>
