@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>東京フリーきっぷ 元取りチェッカー v14</title>
+<style>
+:root{--navy:#10203e;--blue:#2864dc;--ink:#18243b;--muted:#66758d;--line:#dce5f1;--bg:#f3f6fb}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+header{background:linear-gradient(120deg,#101d38,#2858a9);color:#fff;padding:28px 18px 32px}
+.wrap{max-width:980px;margin:auto;padding:0 16px}h1{font-size:clamp(25px,5vw,36px);margin:0}header p{color:#dce7ff;margin:8px 0 0}
+main{padding:22px 0 48px}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 8px 25px #13294b0a}
+h2{font-size:18px;margin:0 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field label{display:block;font-size:13px;font-weight:750;margin-bottom:6px}
+select,input{width:100%;padding:12px;border:1px solid #cbd6e5;border-radius:10px;background:#fff;font:inherit;color:var(--ink)}
+button{border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer}.primary{background:var(--blue);color:white}.soft{background:#edf3ff;color:#1d4ca5}.remove{background:#fff0f0;color:#a33434}
+.trip{border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}.triphead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.tripgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fareline{display:flex;justify-content:space-between;background:#f3f6fb;border-radius:10px;padding:10px 12px;margin-top:10px;font-weight:750}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#f3f6fb;border-radius:13px;padding:14px}.stat small{color:var(--muted);font-weight:700}.stat b{display:block;font-size:24px;margin-top:4px}
+.verdict{background:#eaf1ff;border-radius:13px;padding:16px;margin-top:14px;font-size:18px;font-weight:800}.hint{font-size:12px;line-height:1.7;color:var(--muted)}.warn{background:#fff8e8;border:1px solid #f0dfb7;padding:12px;border-radius:12px;color:#6f5219;font-size:13px;line-height:1.65}
+.tag{display:inline-block;background:#eaf1ff;color:#2453a6;padding:4px 8px;border-radius:99px;font-size:11px;font-weight:800;margin-bottom:10px}
+@media(max-width:640px){.grid,.tripgrid,.stats{grid-template-columns:1fr}.stat b{font-size:21px}}
+</style></head>
+<body>
+<header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v14</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
+<main class="wrap">
+<section class="card" style="border-color:#e5bd69;background:#fffaf0">
+<strong>v24更新：公式距離を確認できた東京メトロ3区間のみ自動計算。未照合の7路線は誤った運賃を出さないよう計算を保留。</strong>
+<p class="hint" style="margin:6px 0 0;color:#765719">都営バスは23区内の一般系統（大人210円・小児110円）、学バス（大人180円・小児90円）、C・H01系統（大人190円・小児100円）を1乗車ごとに計上できます。江東01は東京フリーきっぷ対象外です。多摩地域・深夜バスは未対応です。</p>
+</section>
+<section class="card">
+<span class="tag">運賃比較ツール・検証版</span><h2>① 条件</h2>
+<div class="grid">
+<div class="field"><label>利用者</label><select id="age"><option value="adult">大人</option><option value="child">小児</option></select></div>
+<div class="field"><label>フリーパス価格</label><input id="passPrice" value="1720" type="number" min="0"></div>
+</div>
+<p class="hint">初期価格：大人1,720円／小児860円。購入した券面の金額と異なる場合は修正してください。</p>
+</section>
+<section class="card">
+<h2>② 乗車した区間</h2><div id="trips"></div>
+<div class="actions"><button class="soft" id="add">＋ 区間を追加</button><button class="soft" id="sample">サンプル</button></div>
+</section>
+<section class="card">
+<h2>③ 結果</h2><div class="stats">
+<div class="stat"><small>通常運賃合計</small><b id="total">0円</b></div>
+<div class="stat"><small>フリーパス価格</small><b id="pass">1,720円</b></div>
+<div class="stat"><small>差額</small><b id="diff">−1,720円</b></div>
+</div><div class="verdict" id="verdict">区間を登録してみよう！</div>
+<div class="actions"><button class="primary" id="save">結果をPNG画像で保存</button><button class="soft" id="reset">リセット</button></div>
+</section>
+<section class="card">
+<h2>運賃データについて</h2>
+<div class="warn"><b>v10の対象：</b>東京メトロ9路線、都営地下鉄4路線、東京さくらトラム、日暮里・舎人ライナーが対象です。日暮里・舎人ライナーは東京都交通局の駅間キロ程・紙のきっぷ運賃を反映し、駅選択だけで距離と運賃を自動計算します。都営地下鉄4路線は乗車駅・降車駅を選ぶと駅間データから最短経路距離を自動計算し、紙のきっぷ運賃を表示します。ただし、現時点の駅間データは公式キロ程表との全区間照合が未完了のため参考値です。都営バスは23区内一般系統の1乗車運賃を追加。停留所別の路線・運賃検索と多摩地域は未実装です。</div>
+<p class="hint">都営地下鉄・日暮里舎人ライナーは東京都交通局の公式紙運賃表を基準に計算します。日暮里・舎人ライナーの駅間距離は東京都交通局の公式キロ程表から計算します。都営地下鉄は自動距離計算を実装しましたが、駅間データは公式キロ程表との全区間照合が未完了のため、運賃は参考値として扱ってください。蔵前・東日本橋／馬喰横山の乗換を含む場合は、公式注記どおり別運賃になる場合があります。確認用公式資料：<a href="https://www.tokyometro.jp/ticket/terms/pdf/ryokyaku_eigyo_260314.pdf" target="_blank">東京メトロ旅客営業規程・営業キロ程表（2026年3月14日改定）</a> ／ <a href="https://www.tokyometro.jp/ticket/types/regular/index.html" target="_blank">東京メトロ普通券運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/bus/fare/regular.html" target="_blank">都営バス普通運賃</a> ／ <a href="https://www.jreast.co.jp/2026unchin-kaitei/pamphlet/pageindices/index8.html" target="_blank">JR東日本 2026年改定後の普通運賃表</a> ／ <a href="https://www.jreast.co.jp/multi/pass/tokyo_free.html" target="_blank">JR東日本 東京フリーきっぷ</a> ／ <a href="https://www.tokyometro.jp/ticket/types/regular/index.html" target="_blank">東京メトロ普通券運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/subway/fare/regular.html" target="_blank">都営地下鉄普通運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/service/pdf/13sanko.pdf" target="_blank">都営地下鉄普通運賃</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/service/toden.html" target="_blank">東京さくらトラム概要</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/about/information/statistics/pdf/statistics_2024_08.pdf" target="_blank">東京都交通局 参考資料（駅間キロ程・運賃表）</a> ／ <a href="https://www.kotsu.metro.tokyo.jp/nippori_toneri/fare/regular.html" target="_blank">日暮里・舎人ライナー普通運賃</a></p>
+</section>
+</main><script>
+const stations={
+"JR山手線":"大崎,五反田,目黒,恵比寿,渋谷,原宿,代々木,新宿,新大久保,高田馬場,目白,池袋,大塚,巣鴨,駒込,田端,西日暮里,日暮里,鶯谷,上野,御徒町,秋葉原,神田,東京,有楽町,新橋,浜松町,田町,高輪ゲートウェイ,品川",
+"JR中央線快速":"東京,神田,御茶ノ水,四ツ谷,新宿,中野,高円寺,阿佐ケ谷,荻窪,西荻窪",
+"JR総武線各駅停車":"西荻窪,荻窪,阿佐ケ谷,高円寺,中野,東中野,大久保,新宿,代々木,千駄ケ谷,信濃町,四ツ谷,市ケ谷,飯田橋,水道橋,御茶ノ水,秋葉原,浅草橋,両国,錦糸町,亀戸,平井,新小岩,小岩",
+"JR京浜東北線":"蒲田,大森,大井町,品川,高輪ゲートウェイ,田町,浜松町,新橋,有楽町,東京,神田,秋葉原,御徒町,上野,鶯谷,日暮里,西日暮里,田端,上中里,王子,東十条,赤羽",
+"JR埼京線":"大崎,恵比寿,渋谷,新宿,池袋,板橋,十条,赤羽",
+"JR湘南新宿ライン":"大崎,恵比寿,渋谷,新宿,池袋,赤羽",
+"JR東海道線":"東京,新橋,品川",
+"JR宇都宮線":"東京,上野,尾久,赤羽",
+"JR高崎線":"東京,上野,尾久,赤羽",
+"JR横須賀線":"東京,新橋,品川,西大井",
+"JR総武快速線":"東京,新日本橋,馬喰町,錦糸町,新小岩",
+"JR常磐線快速":"上野,日暮里,三河島,南千住,北千住",
+"JR常磐線各駅停車":"綾瀬,亀有,金町",
+"JR京葉線":"東京,八丁堀,越中島,潮見,新木場,葛西臨海公園",
+"東京メトロ銀座線":"浅草,田原町,稲荷町,上野,上野広小路,末広町,神田,三越前,日本橋,京橋,銀座,新橋,虎ノ門,溜池山王,赤坂見附,青山一丁目,外苑前,表参道,渋谷",
+"東京メトロ丸ノ内線":"池袋,新大塚,茗荷谷,後楽園,本郷三丁目,御茶ノ水,淡路町,大手町,東京,銀座,霞ケ関,国会議事堂前,赤坂見附,四ツ谷,四谷三丁目,新宿御苑前,新宿三丁目,新宿,西新宿,中野坂上,新中野,東高円寺,新高円寺,南阿佐ケ谷,荻窪",
+"東京メトロ丸ノ内線（方南町支線）":"中野坂上,中野新橋,中野富士見町,方南町",
+"東京メトロ日比谷線":"北千住,南千住,三ノ輪,入谷,上野,仲御徒町,秋葉原,小伝馬町,人形町,茅場町,八丁堀,築地,東銀座,銀座,日比谷,霞ケ関,虎ノ門ヒルズ,神谷町,六本木,広尾,恵比寿,中目黒",
+"東京メトロ東西線":"中野,落合,高田馬場,早稲田,神楽坂,飯田橋,九段下,竹橋,大手町,日本橋,茅場町,門前仲町,木場,東陽町,南砂町,西葛西,葛西,浦安,南行徳,行徳,妙典,原木中山,西船橋",
+"東京メトロ千代田線":"代々木上原,代々木公園,明治神宮前,表参道,乃木坂,赤坂,国会議事堂前,霞ケ関,日比谷,二重橋前,大手町,新御茶ノ水,湯島,根津,千駄木,西日暮里,町屋,北千住,綾瀬,北綾瀬",
+"東京メトロ有楽町線":"和光市,地下鉄成増,地下鉄赤塚,平和台,氷川台,小竹向原,千川,要町,池袋,東池袋,護国寺,江戸川橋,飯田橋,市ケ谷,麹町,永田町,桜田門,有楽町,銀座一丁目,新富町,月島,豊洲,辰巳,新木場",
+"東京メトロ半蔵門線":"渋谷,表参道,青山一丁目,永田町,半蔵門,九段下,神保町,大手町,三越前,水天宮前,清澄白河,住吉,錦糸町,押上",
+"東京メトロ南北線":"目黒,白金台,白金高輪,麻布十番,六本木一丁目,溜池山王,永田町,四ツ谷,市ケ谷,飯田橋,後楽園,東大前,本駒込,駒込,西ケ原,王子,王子神谷,志茂,赤羽岩淵",
+"東京メトロ副都心線":"和光市,地下鉄成増,地下鉄赤塚,平和台,氷川台,小竹向原,千川,要町,池袋,雑司が谷,西早稲田,東新宿,新宿三丁目,北参道,明治神宮前,渋谷",
+"都営地下鉄浅草線":"西馬込,馬込,中延,戸越,五反田,高輪台,泉岳寺,三田,大門,新橋,東銀座,宝町,日本橋,人形町,東日本橋,浅草橋,蔵前,浅草,本所吾妻橋,押上",
+"都営地下鉄三田線":"目黒,白金台,白金高輪,三田,芝公園,御成門,内幸町,日比谷,大手町,神保町,水道橋,春日,白山,千石,巣鴨,西巣鴨,新板橋,板橋区役所前,板橋本町,本蓮沼,志村坂上,志村三丁目,蓮根,西台,高島平,新高島平,西高島平",
+"都営地下鉄新宿線":"新宿,新宿三丁目,曙橋,市ヶ谷,九段下,神保町,小川町,岩本町,馬喰横山,浜町,森下,菊川,住吉,西大島,大島,東大島,船堀,一之江,瑞江,篠崎,本八幡",
+"都営地下鉄大江戸線":"都庁前,新宿,西新宿五丁目,中野坂上,東中野,中井,落合南長崎,新江古田,練馬,豊島園,練馬春日町,光が丘,新宿西口,東新宿,若松河田,牛込柳町,牛込神楽坂,飯田橋,春日,本郷三丁目,上野御徒町,新御徒町,蔵前,両国,森下,清澄白河,門前仲町,月島,勝どき,築地市場,汐留,大門,赤羽橋,麻布十番,六本木,青山一丁目,国立競技場,代々木",
+"日暮里・舎人ライナー":"日暮里,西日暮里,赤土小学校前,熊野前,足立小台,扇大橋,高野,江北,西新井大師西,谷在家,舎人公園,舎人,見沼代親水公園",
+ "都営バス（23区内・一般系統／1乗車）":"1乗車",
+"都営バス（学バス／1乗車）":"1乗車",
+"都営バス（C・H01系統／1乗車）":"1乗車",
+"都営バス（江東01系統）":"1乗車",
+"都営バス（学バス系統／1乗車）":"1乗車",
+"都営バス（C・H01系統／1乗車）":"1乗車",
+"都営バス（江東01系統）":"1乗車",
+"東京さくらトラム（都電荒川線）":"三ノ輪橋,荒川一中前,荒川区役所前,荒川二丁目,荒川七丁目,町屋駅前,町屋二丁目,東尾久三丁目,熊野前,宮ノ前,小台,荒川遊園地前,荒川車庫前,梶原,栄町,王子駅前,飛鳥山,滝野川一丁目,西ヶ原四丁目,新庚申塚,庚申塚,巣鴨新田,大塚駅前,向原,東池袋四丁目,都電雑司ヶ谷,鬼子母神前,学習院下,面影橋,早稲田"
+};
+
+const metroRoutes={
+"東京メトロ銀座線":[
+["浅草","田原町","稲荷町","上野","上野広小路","末広町","神田","三越前","日本橋","京橋","銀座","新橋","虎ノ門","溜池山王","赤坂見附","青山一丁目","外苑前","表参道","渋谷"],
+[1.2,0.7,0.7,1.3,0.7,0.8,0.8,0.9,0.7,0.7,0.6,0.7,1.1,0.6,0.5,0.7,0.7,0.8]
+],
+"東京メトロ丸ノ内線":[
+["池袋","新大塚","茗荷谷","後楽園","本郷三丁目","御茶ノ水","淡路町","大手町","東京","銀座","霞ケ関","国会議事堂前","赤坂見附","四ツ谷","四谷三丁目","新宿御苑前","新宿三丁目","新宿","西新宿","中野坂上","新中野","東高円寺","新高円寺","南阿佐ケ谷","荻窪"],
+[1.8,1.2,1.8,0.8,0.8,0.8,0.9,0.6,1.1,1.0,0.7,0.9,1.3,1.0,0.9,0.7,0.5,0.6,1.1,1.1,1.0,0.9,1.2,1.5]
+],
+"東京メトロ丸ノ内線（方南町支線）":[
+["中野坂上","中野新橋","中野富士見町","方南町"],[1.3,0.6,1.3]
+],
+"東京メトロ日比谷線":[["北千住","南千住","三ノ輪","入谷","上野","仲御徒町","秋葉原","小伝馬町","人形町","茅場町","八丁堀","築地","東銀座","銀座","日比谷","霞ケ関","虎ノ門ヒルズ","神谷町","六本木","広尾","恵比寿","中目黒"],[2.1,0.8,1.2,1.2,0.5,1.0,0.9,0.6,0.9,0.5,1.0,0.6,0.4,0.4,1.2,0.8,0.5,1.5,1.7,1.5,1.0]],
+"東京メトロ東西線":[["中野","落合","高田馬場","早稲田","神楽坂","飯田橋","九段下","竹橋","大手町","日本橋","茅場町","門前仲町","木場","東陽町","南砂町","西葛西","葛西","浦安","南行徳","行徳","妙典","原木中山","西船橋"],[2.0,1.9,1.7,1.2,1.2,1.0,1.0,0.7,0.5,0.8,1.0,0.9,0.7,1.2,1.2,1.2,1.2,1.3,1.3,2.1,1.9,1.9]],
+"東京メトロ千代田線":[["代々木上原","代々木公園","明治神宮前","表参道","乃木坂","赤坂","国会議事堂前","霞ケ関","日比谷","二重橋前","大手町","新御茶ノ水","湯島","根津","千駄木","西日暮里","町屋","北千住","綾瀬","北綾瀬"],[2.1,0.7,0.9,1.0,0.9,1.0,0.9,0.9,0.9,0.9,0.9,0.9,1.2,1.3,1.3,1.0,1.0,1.0,0.8]],
+"東京メトロ有楽町線":[["和光市","地下鉄成増","地下鉄赤塚","平和台","氷川台","小竹向原","千川","要町","池袋","東池袋","護国寺","江戸川橋","飯田橋","市ケ谷","麹町","永田町","桜田門","有楽町","銀座一丁目","新富町","月島","豊洲","辰巳","新木場"],[2.2,1.4,1.8,1.4,1.5,1.0,1.0,1.2,0.9,1.1,1.3,1.6,1.1,0.9,0.9,0.9,1.0,0.5,0.7,0.7,2.0,1.7,1.5]],
+"東京メトロ半蔵門線":[["渋谷","表参道","青山一丁目","永田町","半蔵門","九段下","神保町","大手町","三越前","水天宮前","清澄白河","住吉","錦糸町","押上"],[1.3,1.4,1.4,1.0,1.6,0.4,1.7,0.7,1.3,1.7,1.9,1.0,1.4]],
+"東京メトロ南北線":[["目黒","白金台","白金高輪","麻布十番","六本木一丁目","溜池山王","永田町","四ツ谷","市ケ谷","飯田橋","後楽園","東大前","本駒込","駒込","西ケ原","王子","王子神谷","志茂","赤羽岩淵"],[1.3,1.0,1.3,1.2,0.9,0.7,1.5,1.2,1.1,1.4,1.3,1.3,1.4,1.0,1.2,1.2,1.6,1.1]],
+"東京メトロ副都心線":[["和光市","地下鉄成増","地下鉄赤塚","平和台","氷川台","小竹向原","千川","要町","池袋","雑司が谷","西早稲田","東新宿","新宿三丁目","北参道","明治神宮前","渋谷"],[1.1,2.1,1.0,3.7,0.8,0.9,0.7,0.9,0.7,1.5,0.9,1.1,1.4,1.2,1.0]]
+};
+
+// 東京メトロ丸ノ内線：2026年1月19日改正の公式営業キロ程表から池袋起点の累計キロを登録。
+// 駅間値は累計キロの差分。方南町支線は中野坂上起点の公式3.2kmの区間表を反映。
+const marunouchiMainNames=["池袋","新大塚","茗荷谷","後楽園","本郷三丁目","御茶ノ水","淡路町","大手町","東京","銀座","霞ケ関","国会議事堂前","赤坂見附","四ツ谷","四谷三丁目","新宿御苑前","新宿三丁目","新宿","西新宿","中野坂上","新中野","東高円寺","新高円寺","南阿佐ケ谷","荻窪"];
+const marunouchiMainCumulative=[0,1.8,3.0,4.8,5.6,6.4,7.2,8.1,8.7,9.8,10.8,11.5,12.4,13.7,14.7,15.6,16.3,16.8,17.4,18.5,19.6,20.6,21.5,22.7,24.2];
+metroRoutes["東京メトロ丸ノ内線"]=[marunouchiMainNames,marunouchiMainCumulative.slice(1).map((v,i)=>Math.round((v-marunouchiMainCumulative[i])*10)/10)];
+metroRoutes["東京メトロ丸ノ内線（方南町支線）"]=[["中野坂上","中野新橋","中野富士見町","方南町"],[1.3,0.6,1.3]];
+
+function metroDistance(line,a,b){
+ const route=metroRoutes[line];
+ if(!route)return null;
+ const [names,edges]=route;
+ const i=names.indexOf(a),j=names.indexOf(b);
+ if(i<0||j<0)return null;
+ let km=0;
+ for(let k=Math.min(i,j);k<Math.max(i,j);k++){
+   const x=names[k],y=names[k+1],pair=[x,y].sort().join("|");
+   const special={
+     "霞ケ関|国会議事堂前":0.7,
+     "青山一丁目|永田町":1.3,
+     "要町|池袋":1.2,
+     "永田町|四ツ谷":1.3,
+     "溜池山王|永田町":0.9,
+     "溜池山王|虎ノ門":0.6,
+     "赤坂見附|溜池山王":0.9,
+     "渋谷|表参道":1.3
+   };
+   km+=special[pair]??edges[k];
+ }
+ return Math.round(km*10)/10;
+}
+
+const toneriRoute=["日暮里","西日暮里","赤土小学校前","熊野前","足立小台","扇大橋","高野","江北","西新井大師西","谷在家","舎人公園","舎人","見沼代親水公園"];
+const toneriEdges=[0.7,1.0,0.7,0.6,1.1,0.5,0.6,0.8,0.8,0.9,1.0,1.0];
+
+function routeDistance(route,a,b){
+ if(!route)return null;
+ const [names,edges]=route, i=names.indexOf(a),j=names.indexOf(b);
+ if(i<0||j<0)return null;
+ let km=0;
+ for(let k=Math.min(i,j);k<Math.max(i,j);k++)km+=edges[k];
+ return Math.round(km*10)/10;
+}
+function toneriDistance(a,b){return routeDistance([toneriRoute,toneriEdges],a,b);}
+// 都営地下鉄の駅間距離データ（暫定登録値）。路線内の最短経路をグラフ探索で求める。
+// 公式キロ程表の全駅間値との照合作業は継続中。参考値として明示する。
+const toeiEdgeData={
+"都営地下鉄浅草線":[
+["西馬込","馬込",1.2],["馬込","中延",1.2],["中延","戸越",1.1],["戸越","五反田",1.6],["五反田","高輪台",1.1],["高輪台","泉岳寺",1.4],["泉岳寺","三田",1.1],["三田","大門",1.5],["大門","新橋",1.0],["新橋","東銀座",0.9],["東銀座","宝町",0.8],["宝町","日本橋",0.8],["日本橋","人形町",0.8],["人形町","東日本橋",0.7],["東日本橋","浅草橋",0.7],["浅草橋","蔵前",0.7],["蔵前","浅草",0.8],["浅草","本所吾妻橋",0.7],["本所吾妻橋","押上",1.0]],
+"都営地下鉄三田線":[
+["目黒","白金台",1.3],["白金台","白金高輪",1.3],["白金高輪","三田",1.7],["三田","芝公園",1.0],["芝公園","御成門",1.0],["御成門","内幸町",1.3],["内幸町","日比谷",0.9],["日比谷","大手町",1.4],["大手町","神保町",1.4],["神保町","水道橋",1.0],["水道橋","春日",0.8],["春日","白山",1.4],["白山","千石",1.2],["千石","巣鴨",1.4],["巣鴨","西巣鴨",1.4],["西巣鴨","新板橋",1.2],["新板橋","板橋区役所前",1.3],["板橋区役所前","板橋本町",1.2],["板橋本町","本蓮沼",1.1],["本蓮沼","志村坂上",1.1],["志村坂上","志村三丁目",1.0],["志村三丁目","蓮根",1.0],["蓮根","西台",1.1],["西台","高島平",1.0],["高島平","新高島平",0.8],["新高島平","西高島平",1.0]],
+"都営地下鉄新宿線":[
+["新宿","新宿三丁目",0.8],["新宿三丁目","曙橋",1.5],["曙橋","市ヶ谷",1.4],["市ヶ谷","九段下",1.3],["九段下","神保町",0.6],["神保町","小川町",0.9],["小川町","岩本町",0.8],["岩本町","馬喰横山",0.8],["馬喰横山","浜町",0.8],["浜町","森下",0.8],["森下","菊川",0.8],["菊川","住吉",1.0],["住吉","西大島",0.9],["西大島","大島",1.2],["大島","東大島",1.2],["東大島","船堀",1.7],["船堀","一之江",2.2],["一之江","瑞江",1.7],["瑞江","篠崎",1.5],["篠崎","本八幡",2.8]]
+};
+// 大江戸線の環状部は東京都交通局のキロ程表の累計値を駅間差分化。
+// 都庁前→光が丘の支線は別枝として接続。
+const oedoLoopNames=["都庁前","新宿西口","東新宿","若松河田","牛込柳町","牛込神楽坂","飯田橋","春日","本郷三丁目","上野御徒町","新御徒町","蔵前","両国","森下","清澄白河","門前仲町","月島","勝どき","築地市場","汐留","大門","赤羽橋","麻布十番","六本木","青山一丁目","国立競技場","代々木","新宿"];
+const oedoCum=[0,2.2,3.2,3.8,4.8,5.8,6.8,7.6,8.7,9.5,10.5,11.7,12.7,13.3,14.5,15.9,16.7,18.2,19.1,20.0,21.3,22.1,23.2,24.5,25.7,27.2,27.8,28.6];
+const toeiGraphEdges={...toeiEdgeData["都営地下鉄浅草線"].map(x=>x),...[]};
+function shortestGraphDistance(edges,start,end){
+ const graph={};
+ for(const [a,b,w] of edges){(graph[a]??=[]).push([b,w]);(graph[b]??=[]).push([a,w]);}
+ const dist={[start]:0},seen=new Set();
+ while(true){
+   let cur=null,best=Infinity;
+   for(const [k,v] of Object.entries(dist)) if(!seen.has(k)&&v<best){cur=k;best=v;}
+   if(cur===null)return null;
+   if(cur===end)return Math.round(best*10)/10;
+   seen.add(cur);
+   for(const [n,w] of (graph[cur]||[])) if(!seen.has(n)&&best+w<(dist[n]??Infinity))dist[n]=best+w;
+ }
+}
+function toeiDistanceAuto(line,a,b){
+ if(!a||!b||a===b)return null;
+ if(line==="都営地下鉄大江戸線"){
+   const edges=[];
+   for(let i=0;i<oedoLoopNames.length-1;i++) edges.push([oedoLoopNames[i],oedoLoopNames[i+1],Math.round((oedoCum[i+1]-oedoCum[i])*10)/10]);
+   // ring closes at Tocho-mae; cumulative return distance is 0.8 km
+   edges.push(["新宿","都庁前",0.8]);
+   // Hikarigaoka branch: Tocho-mae -> Shinjuku -> Nishi-Shinjuku-Gochome -> Nakano-Sakaue -> ... -> Hikarigaoka
+   edges.push(["都庁前","新宿",0.8],["新宿","西新宿五丁目",1.2],["西新宿五丁目","中野坂上",1.4],["中野坂上","東中野",1.6],["東中野","中井",1.6],["中井","落合南長崎",1.9],["落合南長崎","新江古田",1.6],["新江古田","練馬",1.8],["練馬","豊島園",1.0],["豊島園","練馬春日町",1.5],["練馬春日町","光が丘",1.4]);
+   return shortestGraphDistance(edges,a,b);
+ }
+ return shortestGraphDistance(toeiEdgeData[line]||[],a,b);
+}
+
+
+
+// JR営業キロデータ：山手線（JR時刻表の営業キロ程に基づく駅間値）
+const jrEdges = {
+  "JR山手線": [
+    ["品川","大崎",2.0],["大崎","五反田",0.9],["五反田","目黒",1.2],["目黒","恵比寿",1.5],
+    ["恵比寿","渋谷",1.6],["渋谷","原宿",1.2],["原宿","代々木",1.5],["代々木","新宿",0.7],
+    ["新宿","新大久保",1.3],["新大久保","高田馬場",1.4],["高田馬場","目白",0.9],["目白","池袋",1.2],
+    ["池袋","大塚",1.8],["大塚","巣鴨",1.1],["巣鴨","駒込",0.7],["駒込","田端",1.6],
+    ["田端","西日暮里",0.8],["西日暮里","日暮里",0.5],["日暮里","鶯谷",1.1],["鶯谷","上野",1.5],
+    ["上野","御徒町",0.8],["御徒町","秋葉原",1.0],["秋葉原","神田",1.3],["神田","東京",1.3],
+    ["東京","有楽町",0.8],["有楽町","新橋",1.1],["新橋","浜松町",1.2],["浜松町","田町",1.5],
+    ["田町","高輪ゲートウェイ",0.9],["高輪ゲートウェイ","品川",0.9]
+  ],
+  "JR中央線快速": [
+    ["東京","神田",1.3],["神田","御茶ノ水",1.3],["御茶ノ水","四ツ谷",3.0],
+    ["四ツ谷","新宿",3.7],["新宿","中野",4.4],["中野","高円寺",1.4],
+    ["高円寺","阿佐ケ谷",1.2],["阿佐ケ谷","荻窪",1.4],["荻窪","西荻窪",1.9]
+  ],
+  "JR総武線各駅停車": [
+    ["西荻窪","荻窪",1.9],["荻窪","阿佐ケ谷",1.4],["阿佐ケ谷","高円寺",1.2],
+    ["高円寺","中野",1.4],["中野","東中野",1.9],["東中野","大久保",1.1],
+    ["大久保","新宿",1.3],["新宿","代々木",0.7],["代々木","千駄ケ谷",1.5],
+    ["千駄ケ谷","信濃町",0.9],["信濃町","四ツ谷",1.3],["四ツ谷","市ケ谷",1.3],
+    ["市ケ谷","飯田橋",1.1],["飯田橋","水道橋",1.0],["水道橋","御茶ノ水",0.8],
+    ["御茶ノ水","秋葉原",1.0],["秋葉原","浅草橋",1.1],["浅草橋","両国",1.1],
+    ["両国","錦糸町",1.5],["錦糸町","亀戸",1.5],["亀戸","平井",1.9],
+    ["平井","新小岩",1.8],["新小岩","小岩",2.8]
+  ],
+  "JR京浜東北線": [
+    ["蒲田","大森",3.0],["大森","大井町",2.2],["大井町","品川",2.4],
+    ["品川","高輪ゲートウェイ",0.9],["高輪ゲートウェイ","田町",1.3],
+    ["田町","浜松町",1.5],["浜松町","新橋",1.2],["新橋","有楽町",1.1],
+    ["有楽町","東京",0.8],["東京","神田",1.3],["神田","秋葉原",1.3],
+    ["秋葉原","御徒町",1.0],["御徒町","上野",0.6],["上野","鶯谷",1.5],
+    ["鶯谷","日暮里",1.1],["日暮里","西日暮里",0.5],["西日暮里","田端",0.8],
+    ["田端","上中里",1.7],["上中里","王子",1.1],["王子","東十条",1.5],["東十条","赤羽",2.0]
+  ],
+  "JR埼京線": [
+    ["大崎","恵比寿",3.6],["恵比寿","渋谷",1.6],["渋谷","新宿",3.4],
+    ["新宿","池袋",4.8],["池袋","板橋",1.8],["板橋","十条",1.7],["十条","赤羽",2.0]
+  ],
+  "JR常磐線快速": [
+    ["上野","日暮里",2.2],["日暮里","三河島",1.2],["三河島","南千住",1.6],["南千住","北千住",2.1]
+  ],
+  "JR湘南新宿ライン": [
+    ["大崎","恵比寿",3.6],["恵比寿","渋谷",1.6],["渋谷","新宿",3.4],["新宿","池袋",4.8],["池袋","赤羽",5.5]
+  ],
+  "JR東海道線": [
+    ["東京","新橋",1.9],["新橋","品川",4.9]
+  ],
+  "JR宇都宮線": [
+    ["東京","上野",3.6],["上野","尾久",4.8],["尾久","赤羽",5.0]
+  ],
+  "JR高崎線": [
+    ["東京","上野",3.6],["上野","尾久",4.8],["尾久","赤羽",5.0]
+  ],
+  "JR横須賀線": [
+    ["東京","新橋",1.9],["新橋","品川",4.9],["品川","西大井",5.6]
+  ],
+  "JR総武快速線": [
+    ["東京","新日本橋",1.2],["新日本橋","馬喰町",1.1],["馬喰町","錦糸町",2.5],["錦糸町","新小岩",5.2]
+  ],
+  "JR常磐線各駅停車": [
+    ["綾瀬","亀有",2.2],["亀有","金町",1.6]
+  ],
+  "JR京葉線": [
+    ["東京","八丁堀",1.2],["八丁堀","越中島",1.6],["越中島","潮見",2.9],["潮見","新木場",2.0],["新木場","葛西臨海公園",2.1]
+  ]
+};
+function jrDistanceAuto(line,a,b){
+  if(!a||!b||a===b)return null;
+  const edges=jrEdges[line];
+  if(!edges)return null;
+  const graph={};
+  for(const [x,y,w] of edges){(graph[x]??=[]).push([y,w]);(graph[y]??=[]).push([x,w]);}
+  const dist={},used={}; for(const k of Object.keys(graph))dist[k]=Infinity;
+  if(!(a in dist)||!(b in dist))return null;
+  dist[a]=0;
+  while(true){
+    let u=null,best=Infinity;
+    for(const k in dist)if(!used[k]&&dist[k]<best){best=dist[k];u=k;}
+    if(u===null)break;
+    if(u===b)return best;
+    used[u]=true;
+    for(const [v,w] of graph[u])if(dist[v]>best+w)dist[v]=best+w;
+  }
+  return null;
+}
+function jrFare(km,age){
+  if(km===null||!Number.isFinite(km)||km<=0)return null;
+  const k=Math.ceil(km-1e-8);
+  // JR東日本・幹線の紙のきっぷ運賃（2026年3月14日改定後）
+  const table=[[3,160],[6,200],[10,210],[15,260],[20,350],[25,440],[30,530],[35,620],[40,720],[45,810],[50,910],[60,1040],[70,1230],[80,1410],[90,1600],[100,1790],[120,2090],[140,2420],[160,2750],[180,3190],[200,3520],[220,3850],[240,4180],[260,4620],[280,5060],[300,5390]];
+  const band=table.find(x=>k<=x[0]);
+  if(!band)return null;
+  return age==='adult'?band[1]:Math.ceil((band[1]/2)/10)*10;
+}
+
+const lines=Object.keys(stations), trips=document.getElementById('trips');
+const yen=n=>n.toLocaleString('ja-JP')+'円';
+function createTrip(line=''){
+ const d=document.createElement('div');d.className='trip';
+ d.innerHTML=`<div class="triphead"><b>乗車区間</b><button class="remove">削除</button></div>
+ <div class="tripgrid"><div class="field"><label>交通機関・路線</label><select class="line"><option value="">路線を選択</option>${lines.map(x=>`<option>${x}</option>`).join('')}</select></div>
+ <div class="field"><label>乗車駅・停留所</label><select class="from" disabled><option>先に路線を選択</option></select></div>
+ <div class="field"><label>降車駅・停留所</label><select class="to" disabled><option>先に路線を選択</option></select></div>
+ 
+</div>
+ <div class="fareline"><span>紙のきっぷ運賃</span><span class="amount">未選択</span></div>
+ <div class="scope-note" aria-live="polite">対象範囲の判定待ち</div>`;
+ const l=d.querySelector('.line'),s=d.querySelector('.from'),to=d.querySelector('.to');
+ function fill(){
+  const st=stations[l.value];
+  if(st){const a=st.split(',');const opts='<option value="">駅を選択</option>'+a.map((x,i)=>`<option value="${i}">${x}</option>`).join('');s.innerHTML=opts;to.innerHTML=opts;s.disabled=false;to.disabled=false;s.dataset.kind='station';}
+  else{s.innerHTML='<option>路線を選択</option>';to.innerHTML='<option>路線を選択</option>';s.disabled=true;to.disabled=true;}
+  update();
+ }
+ l.onchange=fill;s.onchange=update;to.onchange=update;
+ d.querySelector('.remove').onclick=()=>{d.remove();update();};
+ trips.appendChild(d);if(line){l.value=line;fill();}
+}
+function fareFor(d){
+ const line=d.querySelector('.line').value,sel=d.querySelector('.from'),v=sel.value,age=document.getElementById('age').value;
+ if(line==='都営バス（23区内・一般系統／1乗車）')return age==='adult'?210:110;
+ if(line==='都営バス（学バス／1乗車）')return age==='adult'?180:90;
+ if(line==='都営バス（C・H01系統／1乗車）')return age==='adult'?190:100;
+ if(line==='都営バス（江東01系統）')return null;
+ if(line==='東京さくらトラム（都電荒川線）')return age==='adult'?170:90;
+ if(line.startsWith('JR')){
+   const a=sel.options[sel.selectedIndex]?.text||'';
+   const b=d.querySelector('.to').options[d.querySelector('.to').selectedIndex]?.text||'';
+   return jrFare(jrDistanceAuto(line,a,b),age);
+ }
+ if(line.startsWith('東京メトロ')){
+   const verifiedMetroLines=['東京メトロ銀座線','東京メトロ丸ノ内線','東京メトロ丸ノ内線（方南町支線）','東京メトロ日比谷線','東京メトロ有楽町線','東京メトロ半蔵門線'];
+   if(!verifiedMetroLines.includes(line))return null;
+   const a=sel.options[sel.selectedIndex]?.text||'';
+   const b=d.querySelector('.to').options[d.querySelector('.to').selectedIndex]?.text||'';
+   const pair=[a,b].sort().join('|');
+   if(line==='東京メトロ千代田線'&&pair==='北千住|綾瀬') return age==='adult'?160:80;
+   if(line==='東京メトロ南北線'&&['目黒','白金台','白金高輪'].includes(a)&&['目黒','白金台','白金高輪'].includes(b)) return age==='adult'?180:90;
+   const km=metroDistance(line,a,b);
+   if(km===null)return null;
+   if(!km||km<=0)return null;
+   const table=[[6,180,90],[11,210,110],[19,260,130],[27,300,150],[40,330,170]];
+   const band=table.find(x=>km<=x[0]);
+   return band?(age==='adult'?band[1]:band[2]):null;
+ }
+ if(line.startsWith('都営地下鉄')){
+   const a=sel.options[sel.selectedIndex]?.text||'';
+   const b=d.querySelector('.to').options[d.querySelector('.to').selectedIndex]?.text||'';
+   const km=toeiDistanceAuto(line,a,b);
+   if(km===null||km<=0)return null;
+   const special=['目黒','白金台','白金高輪'];
+   if(line==='都営地下鉄三田線'&&special.includes(a)&&special.includes(b)) return age==='adult'?180:90;
+   const roundedKm=Math.ceil(km);
+   const table=[[4,180,90],[9,220,110],[15,280,140],[21,330,170],[27,380,190],[46,430,220]];
+   const band=table.find(x=>roundedKm<=x[0]);
+   return band?(age==='adult'?band[1]:band[2]):null;
+ }
+ if(line.startsWith('日暮里・舎人ライナー')){
+   const a=sel.options[sel.selectedIndex]?.text||'';
+   const b=d.querySelector('.to').options[d.querySelector('.to').selectedIndex]?.text||'';
+   const i=toneriRoute.indexOf(a),j=toneriRoute.indexOf(b);
+   if(i<0||j<0||i===j)return null;
+   const km=toneriDistance(a,b);
+   if(km===null)return null;
+   const k=Math.ceil(km);
+   const table=[[2,170,90],[4,240,120],[7,290,150],[10,340,170]];
+   const band=table.find(x=>k<=x[0]);
+   return band?(age==='adult'?band[1]:band[2]):null;
+ }
+ return null;
+}
+function scopeFor(d){
+ const line=d.querySelector('.line').value;
+ const from=d.querySelector('.from'),to=d.querySelector('.to');
+ const a=from.options[from.selectedIndex]?.text||'', b=to.options[to.selectedIndex]?.text||'';
+ if(!line||!a||!b||a==='駅を選択'||b==='駅を選択') return {ok:null,msg:'路線と乗降駅を選択してください'};
+ if(line.startsWith('JR')){
+   // JR segment lists in this calculator are deliberately limited to stations within the Tokyo 23-ward free area.
+   const eligible=(stations[line]||'').split(',');
+   if(!eligible.includes(a)||!eligible.includes(b)) return {ok:false,msg:'対象外：JRの東京23区内区間として登録されていません'};
+   return {ok:true,msg:'対象：JR東京23区内（距離データ登録区間。距離は公式照合中）'};
+ }
+ if(line.startsWith('東京メトロ')) return {ok:true,msg:'対象：東京メトロ全線'};
+ if(line.startsWith('都営地下鉄')) return {ok:true,msg:'対象：都営地下鉄全線'};
+ if(line.startsWith('日暮里・舎人ライナー')) return {ok:true,msg:'対象：全線'};
+ if(line==='都営バス（23区内・一般系統／1乗車）') return {ok:true,msg:'対象：東京23区内の一般系統（紙のきっぷ運賃）'};
+ if(line==='都営バス（学バス／1乗車）') return {ok:true,msg:'対象：学バス系統（学02・学03・学05・学06／紙運賃）'};
+ if(line==='都営バス（C・H01系統／1乗車）') return {ok:true,msg:'対象：C・H01系統（紙運賃）'};
+ if(line==='都営バス（江東01系統）') return {ok:false,msg:'対象外：江東01系統は東京フリーきっぷを利用できません'};
+ if(line.startsWith('東京さくらトラム')) return {ok:true,msg:'対象：全線'};
+ return {ok:false,msg:'対象範囲を確認できません'};
+}
+function update(){
+ let sum=0,known=0,unknown=0;
+ [...trips.children].forEach(d=>{
+  const line=d.querySelector('.line').value,sel=d.querySelector('.from'),to=d.querySelector('.to'),amt=d.querySelector('.amount');
+  if(!line||!sel.value){amt.textContent='未選択';return;}
+  const scope=scopeFor(d);
+  const scopeEl=d.querySelector('.scope-note');
+  if(scopeEl){scopeEl.textContent=scope.msg;scopeEl.style.color=scope.ok===false?'#b42318':scope.ok===true?'#16734a':'#66758d';}
+  if(scope.ok===false){amt.textContent='対象外';unknown++;return;}
+  const f=fareFor(d);
+  if(line.startsWith('東京メトロ')){
+    const a=sel.options[sel.selectedIndex]?.text||'', b=to.options[to.selectedIndex]?.text||'';
+    const km=metroDistance(line,a,b);
+    if(!to.value){amt.textContent='降車駅を選択';}
+    else if(km===null){amt.textContent='距離データ未登録';unknown++;}
+    else if(f!==null){amt.textContent=yen(f)+`（${km.toFixed(1)}km）`;sum+=f;known++;}
+    else{amt.textContent='運賃表の対象外';unknown++;}
+  }
+  else if(line.startsWith('JR')){
+    const a=sel.options[sel.selectedIndex]?.text||'', b=to.options[to.selectedIndex]?.text||'';
+    const km=jrDistanceAuto(line,a,b);
+    if(!to.value){amt.textContent='降車駅を選択';}
+    else if(km===null){amt.textContent='このJR区間の距離データは未登録';unknown++;}
+    else if(f!==null){amt.textContent=yen(f)+`（営業キロ ${km.toFixed(1)}km）`;sum+=f;known++;}
+    else{amt.textContent='運賃表の対象外';unknown++;}
+  }
+  else if(line.startsWith('都営地下鉄')){
+    const a=sel.options[sel.selectedIndex]?.text||'',b=to.options[to.selectedIndex]?.text||'';
+    const km=toeiDistanceAuto(line,a,b);
+    if(!to.value){amt.textContent='降車駅を選択';}
+    else if(km===null){amt.textContent='距離データ未登録';unknown++;}
+    else if(f!==null){amt.textContent=yen(f)+`（自動計算 ${km.toFixed(1)}km・参考値）`;sum+=f;known++;}
+    else{amt.textContent='運賃表の対象外';unknown++;}
+  }
+  else if(line.startsWith('都営バス')){
+    if(f!==null){amt.textContent=yen(f)+'（1乗車・紙のきっぷ運賃）';sum+=f;known++;}
+    else{amt.textContent='運賃未設定';unknown++;}
+  }
+  else if(line.startsWith('日暮里・舎人ライナー')){
+    const a=sel.options[sel.selectedIndex]?.text||'',b=to.options[to.selectedIndex]?.text||'',km=toneriDistance(a,b);
+    if(!to.value){amt.textContent='降車駅を選択';}
+    else if(km===null){amt.textContent='駅間距離データ未登録';unknown++;}
+    else if(f!==null){amt.textContent=yen(f)+`（${km.toFixed(1)}km）`;sum+=f;known++;}
+    else{amt.textContent='運賃表の対象外';unknown++;}
+  }
+  else if(line==='東京さくらトラム（都電荒川線）'&&sel.value&&to.value){amt.textContent=yen(f)+'（紙のきっぷ運賃）';sum+=f;known++;}
+  else if(!to.value){amt.textContent='降車駅を選択';}
+  else{amt.textContent='公式駅間距離・運賃データ未登録';unknown++;}
+ });
+ const p=Math.max(0,Number(document.getElementById('passPrice').value)||0),diff=sum-p;
+ document.getElementById('total').textContent=yen(sum)+(unknown?' ＋未確定区間':'');
+ document.getElementById('pass').textContent=yen(p);
+ document.getElementById('diff').textContent=(diff>=0?'+':'−')+yen(Math.abs(diff));
+ document.getElementById('verdict').textContent=unknown?'一部区間の運賃が未確定です。正確な元取り判定には公式運賃の確認が必要です。':known?(diff>=0?`元が取れた！ ${yen(diff)} お得！`:`あと ${yen(-diff)} で元が取れる！`):'区間を登録してみよう！';
+}
+document.getElementById('add').onclick=()=>createTrip();
+document.getElementById('age').onchange=()=>{document.getElementById('passPrice').value=document.getElementById('age').value==='adult'?1720:860;update();};
+document.getElementById('passPrice').oninput=update;
+document.getElementById('sample').onclick=()=>{trips.innerHTML='';createTrip('JR山手線');createTrip('東京メトロ銀座線');createTrip('都営地下鉄浅草線');};
+document.getElementById('reset').onclick=()=>{trips.innerHTML='';document.getElementById('age').value='adult';document.getElementById('passPrice').value=1720;createTrip();update();};
+document.getElementById('save').onclick=()=>{
+ const rows=[...trips.children].map(d=>`${d.querySelector('.line').value}　${d.querySelector('.from').selectedOptions[0]?.text||''} → ${d.querySelector('.to').selectedOptions[0]?.text||''}　${d.querySelector('.amount').textContent}`).filter(x=>!x.startsWith('　'));
+ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350"><defs><linearGradient id="g"><stop stop-color="#10203e"/><stop offset="1" stop-color="#2864dc"/></linearGradient></defs><rect width="1080" height="1350" fill="#f3f6fb"/><rect width="1080" height="320" fill="url(#g)"/><text x="70" y="125" fill="white" font-size="60" font-family="sans-serif" font-weight="bold">東京フリーきっぷ</text><text x="70" y="210" fill="#dce7ff" font-size="38" font-family="sans-serif">運賃比較レポート</text><rect x="60" y="370" width="960" height="250" rx="28" fill="white"/><text x="100" y="455" fill="#66758d" font-size="28">確認済み運賃の合計</text><text x="100" y="550" fill="#18243b" font-size="65" font-weight="bold">${esc(document.getElementById('total').textContent)}</text><text x="600" y="455" fill="#66758d" font-size="28">パス価格</text><text x="600" y="550" fill="#18243b" font-size="58" font-weight="bold">${esc(document.getElementById('pass').textContent)}</text><rect x="60" y="660" width="960" height="145" rx="24" fill="#eaf1ff"/><text x="100" y="720" fill="#2453a6" font-size="26">差額</text><text x="100" y="775" fill="#18243b" font-size="44" font-weight="bold">${esc(document.getElementById('diff').textContent)}</text><text x="70" y="875" fill="#18243b" font-size="30" font-weight="bold">${esc(document.getElementById('verdict').textContent)}</text>${rows.slice(0,9).map((r,i)=>`<text x="80" y="${950+i*38}" fill="#18243b" font-size="23">${esc(r)}</text>`).join('')}<text x="70" y="1300" fill="#66758d" font-size="20">公式確認済み運賃と未確定区間を分けて表示</text></svg>`;
+ const u=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'})),im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=1080;c.height=1350;c.getContext('2d').drawImage(im,0,0);URL.revokeObjectURL(u);c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='東京フリーきっぷ比較.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);},'image/png');};im.src=u;
+};
+createTrip();
+</script></body></html>
