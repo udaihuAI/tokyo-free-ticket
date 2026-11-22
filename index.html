@@ -142,6 +142,70 @@ a{font-weight:650}
  .card{background:rgba(255,255,255,.96)}
 }
 
+
+/* Device-matched appearance: follow the operating system theme */
+:root{
+ color-scheme:light dark;
+ --page-bg:#eaf1fb;--page-ink:#17243b;--page-muted:#63738d;
+ --glass:rgba(255,255,255,.82);--glass-soft:rgba(255,255,255,.57);
+ --glass-border:rgba(255,255,255,.9);--field-bg:rgba(255,255,255,.74);
+ --field-border:rgba(133,158,197,.36);--trip-bg:rgba(255,255,255,.83);
+ --stat-bg:rgba(255,255,255,.82);--fare-bg:rgba(226,237,255,.84);
+}
+@media(prefers-color-scheme:dark){
+ :root{
+  --page-bg:#080f1e;--page-ink:#edf3ff;--page-muted:#a8b7d0;
+  --glass:rgba(21,33,55,.78);--glass-soft:rgba(20,32,54,.66);
+  --glass-border:rgba(169,194,235,.17);--field-bg:rgba(13,24,43,.78);
+  --field-border:rgba(160,184,224,.25);--trip-bg:rgba(17,30,51,.76);
+  --stat-bg:rgba(20,34,57,.82);--fare-bg:rgba(40,61,96,.68);
+ }
+ html{color-scheme:dark}
+ body{
+  color:var(--page-ink);
+  background:
+   radial-gradient(ellipse at 12% 8%,rgba(48,100,190,.24),transparent 34%),
+   radial-gradient(ellipse at 88% 24%,rgba(104,77,177,.18),transparent 32%),
+   linear-gradient(145deg,#080f1e 0%,#101b30 52%,#0b1425 100%);
+ }
+ header{
+  background:linear-gradient(120deg,rgba(5,12,27,.97),rgba(19,48,96,.92));
+  border-bottom-color:rgba(174,202,255,.17);
+  box-shadow:0 18px 48px rgba(0,0,0,.32);
+ }
+ header p{color:rgba(225,236,255,.82)}
+ .card{
+  color:var(--page-ink);
+  background:linear-gradient(135deg,var(--glass),var(--glass-soft));
+  border-color:var(--glass-border);
+  border-top-color:rgba(205,222,255,.22);
+  box-shadow:0 14px 38px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.08);
+ }
+ .card h2{color:#e8f0ff}
+ .tag{background:linear-gradient(135deg,rgba(48,79,126,.78),rgba(67,55,112,.72));border-color:rgba(186,207,245,.16);color:#d6e5ff}
+ select,input{
+  color:var(--page-ink);background:var(--field-bg);border-color:var(--field-border);
+  color-scheme:dark;
+ }
+ select:hover,input:hover{background:rgba(28,44,70,.92);border-color:rgba(130,173,245,.5)}
+ select:focus,input:focus{background:#14233b;border-color:#82aef4;box-shadow:0 0 0 4px rgba(83,139,231,.2)}
+ select option{background:#14233b;color:#edf3ff}
+ .trip{background:linear-gradient(140deg,var(--trip-bg),rgba(18,31,52,.7));border-color:var(--glass-border);box-shadow:0 7px 20px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.06)}
+ .fareline{background:linear-gradient(110deg,var(--fare-bg),rgba(52,48,87,.6));border-color:var(--glass-border);color:#e9f1ff}
+ .stat{background:linear-gradient(145deg,var(--stat-bg),rgba(26,43,69,.72));border-color:var(--glass-border);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 5px 15px rgba(0,0,0,.15)}
+ .stat small{color:var(--page-muted)}.stat b{color:#f0f5ff}
+ .verdict{background:linear-gradient(120deg,rgba(35,64,108,.88),rgba(53,46,91,.8));border-color:var(--glass-border);color:#e6efff;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 20px rgba(0,0,0,.18)}
+ .warn{background:linear-gradient(135deg,rgba(76,59,26,.62),rgba(66,48,24,.58));border-color:rgba(225,183,98,.28);color:#f5dfad;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+ section.card[style*="border-color"]{background:linear-gradient(135deg,rgba(76,59,26,.62),rgba(66,48,24,.58))!important;border-color:rgba(225,183,98,.28)!important;color:#f5dfad}
+ section.card[style*="border-color"] .hint{color:#e8d29e!important}
+ .hint,.scope-note{color:var(--page-muted)}
+ .soft{background:linear-gradient(135deg,rgba(47,70,108,.92),rgba(38,55,91,.88));border-color:rgba(177,201,244,.18);color:#e5efff}
+ .remove{background:linear-gradient(135deg,rgba(91,42,53,.88),rgba(70,33,47,.88));border-color:rgba(255,190,198,.12);color:#ffdce1}
+ .primary{background:linear-gradient(135deg,#3979ef,#2857c5);color:#fff}
+ a{color:#9fc2ff}
+ .field label{color:#e4ecfa}
+}
+
 </style></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
