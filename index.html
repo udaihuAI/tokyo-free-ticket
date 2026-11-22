@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>東京フリーきっぷ 元取りチェッカー v14</title>
+<title>東京フリーきっぷ 元取りチェッカー v25</title>
 <style>
 :root{--navy:#10203e;--blue:#2864dc;--ink:#18243b;--muted:#66758d;--line:#dce5f1;--bg:#f3f6fb}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
@@ -17,12 +17,32 @@ button{border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:75
 .verdict{background:#eaf1ff;border-radius:13px;padding:16px;margin-top:14px;font-size:18px;font-weight:800}.hint{font-size:12px;line-height:1.7;color:var(--muted)}.warn{background:#fff8e8;border:1px solid #f0dfb7;padding:12px;border-radius:12px;color:#6f5219;font-size:13px;line-height:1.65}
 .tag{display:inline-block;background:#eaf1ff;color:#2453a6;padding:4px 8px;border-radius:99px;font-size:11px;font-weight:800;margin-bottom:10px}
 @media(max-width:640px){.grid,.tripgrid,.stats{grid-template-columns:1fr}.stat b{font-size:21px}}
+:root{color-scheme:light}
+html{scroll-behavior:smooth}
+body{line-height:1.55}
+header{padding:38px 18px 40px;background:radial-gradient(circle at 85% 15%,#477bd0 0,transparent 34%),linear-gradient(120deg,#101d38,#2858a9)}
+header .wrap{max-width:900px}
+header p{max-width:720px;line-height:1.8}
+main.wrap{max-width:900px}
+.card{padding:clamp(16px,3vw,24px);box-shadow:0 8px 28px #13294b0d}
+h2{letter-spacing:.01em}
+select:focus-visible,input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #8bb5ff;outline-offset:2px}
+button{transition:transform .12s ease,filter .12s ease}
+button:hover{filter:brightness(.97)}
+button:active{transform:translateY(1px)}
+.trip{background:#fbfcff}
+.fareline{gap:12px;align-items:center}
+.scope-note{font-size:12px;line-height:1.6;margin-top:8px}
+a{color:#2453a6;text-underline-offset:3px}
+@media(max-width:640px){header{padding:28px 16px 30px}.wrap{padding:0 12px}.card{border-radius:15px}.trip{padding:12px}.actions button{flex:1 1 100%;min-height:46px}.stats{gap:8px}.stat{padding:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button{transition:none}}
+
 </style></head>
 <body>
-<header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v14</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
+<header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
 <main class="wrap">
 <section class="card" style="border-color:#e5bd69;background:#fffaf0">
-<strong>v24更新：公式距離を確認できた東京メトロ3区間のみ自動計算。未照合の7路線は誤った運賃を出さないよう計算を保留。</strong>
+<strong>v25更新：公式距離を確認できた東京メトロ6区間（銀座線・丸ノ内線・方南町支線・日比谷線・有楽町線・半蔵門線）を自動計算。未照合の路線・区間は推測せず、計算を保留します。</strong>
 <p class="hint" style="margin:6px 0 0;color:#765719">都営バスは23区内の一般系統（大人210円・小児110円）、学バス（大人180円・小児90円）、C・H01系統（大人190円・小児100円）を1乗車ごとに計上できます。江東01は東京フリーきっぷ対象外です。多摩地域・深夜バスは未対応です。</p>
 </section>
 <section class="card">
@@ -381,9 +401,9 @@ function scopeFor(d){
    // JR segment lists in this calculator are deliberately limited to stations within the Tokyo 23-ward free area.
    const eligible=(stations[line]||'').split(',');
    if(!eligible.includes(a)||!eligible.includes(b)) return {ok:false,msg:'対象外：JRの東京23区内区間として登録されていません'};
-   return {ok:true,msg:'対象：JR東京23区内（距離データ登録区間。距離は公式照合中）'};
+   return {ok:true,msg:'対象：JR東京23区内（登録済み距離データがある区間のみ計算。未登録区間あり）'};
  }
- if(line.startsWith('東京メトロ')) return {ok:true,msg:'対象：東京メトロ全線'};
+ if(line.startsWith('東京メトロ')) return {ok:true,msg:'対象：東京メトロ（運賃データ確認済み区間のみ自動計算）'};
  if(line.startsWith('都営地下鉄')) return {ok:true,msg:'対象：都営地下鉄全線'};
  if(line.startsWith('日暮里・舎人ライナー')) return {ok:true,msg:'対象：全線'};
  if(line==='都営バス（23区内・一般系統／1乗車）') return {ok:true,msg:'対象：東京23区内の一般系統（紙のきっぷ運賃）'};
