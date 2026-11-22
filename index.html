@@ -221,6 +221,31 @@ a{font-weight:650}
 .map-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.map-legend span{font-size:11px;padding:5px 9px;border-radius:99px;background:rgba(128,145,170,.13)}
 @media(prefers-color-scheme:dark){.map-track-wrap{background:rgba(8,18,34,.42)}.map-stop{color:#edf3ff}.map-stop .dot{background:#eaf1ff}.map-status{background:rgba(20,34,57,.8)}}
 @media(max-width:640px){.map-toolbar{grid-template-columns:1fr}.map-stop{width:68px}.map-stop .station-label{font-size:10px}}
+
+/* Network map: official route colors and view modes */
+.map-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.map-tab{background:rgba(125,150,190,.13);color:var(--page-ink);border:1px solid rgba(125,150,190,.2);box-shadow:none}
+.map-tab.active{background:linear-gradient(135deg,#3979ef,#2857c5);color:white;border-color:transparent}
+.map-network-scroll{overflow:auto;border-radius:16px;background:rgba(224,234,249,.42);border:1px solid rgba(145,170,210,.22)}
+#networkSvg{display:block;width:100%;min-width:760px;height:auto;min-height:560px}
+.net-edge{fill:none;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;opacity:.88}
+.net-node{cursor:pointer;outline:none}.net-node circle{fill:#fff;stroke:#263b5c;stroke-width:2}.net-node.interchange circle{stroke-width:3.5}
+.net-node.selected circle{fill:#ffd45e;stroke:#172b4b;stroke-width:4}
+.net-node text{font:12px system-ui,-apple-system,"Noto Sans JP",sans-serif;fill:#24344f;paint-order:stroke;stroke:rgba(255,255,255,.9);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.map-track-wrap{overflow-x:auto;padding:22px 8px 14px;border-radius:16px;background:rgba(222,233,250,.42);border:1px solid rgba(150,174,212,.22)}
+.map-track{display:flex;align-items:flex-start;min-width:max-content;padding:12px 12px 6px}
+.map-stop{position:relative;display:flex;flex-direction:column;align-items:center;width:76px;min-height:90px;cursor:pointer;color:var(--page-ink,#17243b);font:inherit;background:none;border:0;box-shadow:none;padding:0 3px}
+.map-stop:before{content:"";position:absolute;top:11px;left:0;width:100%;height:5px;background:var(--route-color,#2864dc);z-index:0}
+.map-stop:first-child:before{left:50%;width:50%}.map-stop:last-child:before{width:50%}
+.map-stop .dot{z-index:1;width:22px;height:22px;border:4px solid var(--route-color,#2864dc);background:#fff;border-radius:50%}
+.map-stop .station-label{font-size:11px;font-weight:750;line-height:1.35;margin-top:8px;max-width:74px;overflow-wrap:anywhere;text-align:center}
+.map-stop.selected .dot{background:#ffcf55;border-color:#142b52;transform:scale(1.15)}
+.map-status{padding:12px 14px;border-radius:12px;background:rgba(235,242,255,.75);margin-top:12px;font-size:13px;line-height:1.65}
+.map-status.ok{border:1px solid #7ac49b;color:#17633a}.map-status.check{border:1px solid #e2bf72;color:#775515}
+.map-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.map-legend span{font-size:11px;padding:5px 9px;border-radius:99px;background:rgba(128,145,170,.13)}
+@media(prefers-color-scheme:dark){.map-network-scroll,.map-track-wrap{background:rgba(8,18,34,.55)}.net-node text{fill:#e7efff;stroke:rgba(9,19,35,.92)}.net-node circle{fill:#182b49;stroke:#dce8ff}.map-status{background:rgba(20,34,57,.8)}.map-tab{color:#e8f0ff}}
+@media(max-width:640px){.map-tabs .map-tab{flex:1 1 30%;padding:10px 8px;font-size:12px}.map-stop{width:68px}.map-stop .station-label{font-size:10px}}
+
 </style></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -243,12 +268,24 @@ a{font-weight:650}
 </section>
 <section class="card" id="coverageMap">
 <span class="tag">NETWORK MAP</span><h2>対象区間マップ</h2>
-<p class="hint">路線を選び、駅をタップして乗車駅・降車駅を指定できます。駅間データが登録されている区間は「計算対応」、未登録の区間は「要確認」と表示します。</p>
+<p class="hint">ネットワーク図では路線同士のつながりと乗換駅を確認できます。駅を選択すると、利用できる路線と区間データの登録状況を表示します。</p>
+<div class="map-tabs" role="group" aria-label="マップ表示切替">
+<button type="button" class="map-tab active" data-view="network">ネットワーク</button>
+<button type="button" class="map-tab" data-view="route">路線別</button>
+<button type="button" class="map-tab" data-view="both">両方表示</button>
+</div>
+<div id="networkPanel" class="map-panel">
+<div class="map-network-scroll"><svg id="networkSvg" viewBox="0 0 1200 900" role="img" aria-label="路線の接続と乗換駅を示すネットワーク型路線図"></svg></div>
+<p class="hint">同じ駅名の駅を路線間で接続した模式ネットワーク図です。線の色は各路線のカラーを表します。実際の地理的な位置・縮尺とは異なります。</p>
+</div>
+<div id="routePanel" class="map-panel" hidden>
 <div class="map-toolbar"><div class="field"><label for="mapLine">路線を選択</label><select id="mapLine"></select></div><button class="soft" id="mapClear" type="button">選択をクリア</button></div>
 <div class="map-track-wrap" aria-label="駅を選択できる路線図"><div class="map-track" id="mapTrack"></div></div>
-<div class="map-status" id="mapStatus" aria-live="polite">路線を選択してください。</div>
-<div class="map-legend"><span>● 駅</span><span>黄色：選択中の駅</span><span>色付き線：路線</span></div>
-<p class="hint" style="margin-top:12px">※サイト内に登録された駅・区間データを表示する模式路線図です。実際の地理的位置や全列車の運転系統を正確な縮尺で表すものではありません。都営バスは停留所別データが未整備のため、路線図には含めず、対象範囲注記で扱います。</p></section>
+</div>
+<div class="map-status" id="mapStatus" aria-live="polite">駅を選択すると、区間の対応状況を確認できます。</div>
+<div class="map-legend"><span>● 駅</span><span>黄色：選択中</span><span>二重丸：複数路線の乗換駅</span></div>
+<p class="hint" style="margin-top:12px">※JR・東京メトロ・都営地下鉄・日暮里・舎人ライナー・東京さくらトラムの登録駅を表示。都営バスは停留所別データが未整備のため図には含めていません。未登録区間の運賃は推測しません。</p>
+</section>
 <section class="card">
 <h2>③ 結果</h2><div class="stats">
 <div class="stat"><small>通常運賃合計</small><b id="total">0円</b></div>
@@ -653,23 +690,75 @@ function update(){
   }
   else if(line==='東京さくらトラム（都電荒川線）'&&sel.value&&to.value){amt.textContent=yen(f)+'（紙のきっぷ運賃）';sum+=f;known++;}
   else if(!to.value){amt.textContent='降車駅を選択';}
-  else{amt.textContent='公式駅間距離・運賃データ未登録';unknown++;}
- });
- const p=Math.max(0,Number(document.getElementById('passPrice').value)||0),diff=sum-p;
- document.getElementById('total').textContent=yen(sum)+(unknown?' ＋未確定区間':'');
- document.getElementById('pass').textContent=yen(p);
- document.getElementById('diff').textContent=(diff>=0?'+':'−')+yen(Math.abs(diff));
- document.getElementById('verdict').textContent=unknown?'一部区間の運賃が未確定です。正確な元取り判定には公式運賃の確認が必要です。':known?(diff>=0?`元が取れた！ ${yen(diff)} お得！`:`あと ${yen(-diff)} で元が取れる！`):'区間を登録してみよう！';
-}
-document.getElementById('add').onclick=()=>createTrip();
-document.getElementById('age').onchange=()=>{document.getElementById('passPrice').value=document.getElementById('age').value==='adult'?1720:860;update();};
-document.getElementById('passPrice').oninput=update;
-document.getElementById('sample').onclick=()=>{trips.innerHTML='';createTrip('JR山手線');createTrip('東京メトロ銀座線');createTrip('都営地下鉄浅草線');};
-document.getElementById('reset').onclick=()=>{trips.innerHTML='';document.getElementById('age').value='adult';document.getElementById('passPrice').value=1720;createTrip();update();};
-document.getElementById('save').onclick=()=>{
- const rows=[...trips.children].map(d=>`${d.querySelector('.line').value}　${d.querySelector('.from').selectedOptions[0]?.text||''} → ${d.querySelector('.to').selectedOptions[0]?.text||''}　${d.querySelector('.amount').textContent}`).filter(x=>!x.startsWith('　'));
- const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350"><defs><linearGradient id="g"><stop stop-color="#10203e"/><stop offset="1" stop-color="#2864dc"/></linearGradient></defs><rect width="1080" height="1350" fill="#f3f6fb"/><rect width="1080" height="320" fill="url(#g)"/><text x="70" y="125" fill="white" font-size="60" font-family="sans-serif" font-weight="bold">東京フリーきっぷ</text><text x="70" y="210" fill="#dce7ff" font-size="38" font-family="sans-serif">運賃比較レポート</text><rect x="60" y="370" width="960" height="250" rx="28" fill="white"/><text x="100" y="455" fill="#66758d" font-size="28">確認済み運賃の合計</text><text x="100" y="550" fill="#18243b" font-size="65" font-weight="bold">${esc(document.getElementById('total').textContent)}</text><text x="600" y="455" fill="#66758d" font-size="28">パス価格</text><text x="600" y="550" fill="#18243b" font-size="58" font-weight="bold">${esc(document.getElementById('pass').textContent)}</text><rect x="60" y="660" width="960" height="145" rx="24" fill="#eaf1ff"/><text x="100" y="720" fill="#2453a6" font-size="26">差額</text><text x="100" y="775" fill="#18243b" font-size="44" font-weight="bold">${esc(document.getElementById('diff').textContent)}</text><text x="70" y="875" fill="#18243b" font-size="30" font-weight="bold">${esc(document.getElementById('verdict').textContent)}</text>${rows.slice(0,9).map((r,i)=>`<text x="80" y="${950+i*38}" fill="#18243b" font-size="23">${esc(r)}</text>`).join('')}<text x="70" y="1300" fill="#66758d" font-size="20">公式確認済み運賃と未確定区間を分けて表示</text></svg>`;
+  else{amt.te/* Interactive multi-line network map */
+(function initCoverageMap(){
+ const mapLine=document.getElementById('mapLine'),mapTrack=document.getElementById('mapTrack'),mapStatus=document.getElementById('mapStatus');
+ const svg=document.getElementById('networkSvg'),networkPanel=document.getElementById('networkPanel'),routePanel=document.getElementById('routePanel');
+ const routeColors={
+ 'JR山手線':'#80C241','JR中央線快速':'#F15A22','JR総武線各駅停車':'#FFD400','JR京浜東北線':'#00A7E3',
+ 'JR埼京線':'#00AC9A','JR湘南新宿ライン':'#E87722','JR東海道線':'#E87722','JR宇都宮線':'#F15A22',
+ 'JR高崎線':'#E87722','JR横須賀線':'#0072BC','JR総武快速線':'#00A7E3','JR常磐線快速':'#00A650',
+ 'JR常磐線各駅停車':'#00A650','JR京葉線':'#C9258A',
+ '東京メトロ銀座線':'#F39700','東京メトロ丸ノ内線':'#E8383D','東京メトロ丸ノ内線（方南町支線）':'#E8383D',
+ '東京メトロ日比谷線':'#9CAEB7','東京メトロ東西線':'#00A7DB','東京メトロ千代田線':'#00A650',
+ '東京メトロ有楽町線':'#C1A300','東京メトロ半蔵門線':'#8F76D6','東京メトロ南北線':'#00ADA9',
+ '東京メトロ副都心線':'#9C5EAE','都営地下鉄浅草線':'#E85298','都営地下鉄三田線':'#0079C2',
+ '都営地下鉄新宿線':'#6CBB5A','都営地下鉄大江戸線':'#B6007A','日暮里・舎人ライナー':'#B6A06A',
+ '東京さくらトラム（都電荒川線）':'#D66B9C'
+ };
+ const mapLines=Object.keys(stations).filter(x=>!x.startsWith('都営バス'));let fromName='',toName='';
+ mapLine.innerHTML=mapLines.map(x=>'<option value="'+x.replace(/"/g,'&quot;')+'">'+x+'</option>').join('');
+ function routeListFor(name){return mapLines.filter(line=>(stations[line]||'').split(',').includes(name));}
+ function assess(){
+  const line=mapLine.value,a=fromName,b=toName;mapStatus.className='map-status';
+  if(!a||!b){mapStatus.textContent=fromName?'乗車駅：'+fromName+'。続けて降車駅を選択してください。':'駅を2つ選ぶと、区間の対応状況を判定します。';return;}
+  if(a===b){mapStatus.textContent='乗車駅と降車駅が同じです。別々の駅を選択してください。';return;}
+  let km=null,label='';
+  if(line.startsWith('JR')){km=jrDistanceAuto(line,a,b);label='営業キロ';}
+  else if(line.startsWith('東京メトロ')){km=metroDistance(line,a,b);label='営業キロ';}
+  else if(line.startsWith('都営地下鉄')){km=toeiDistanceAuto(line,a,b);label='距離';}
+  else if(line.startsWith('日暮里・舎人ライナー')){km=toneriDistance(a,b);label='駅間距離';}
+  else if(line.startsWith('東京さくらトラム')){km=0;label='均一運賃';}
+  if(km!==null){mapStatus.classList.add('ok');mapStatus.textContent='計算対応：'+line+'　'+a+' → '+b+(km>0?' ／ '+label+' '+km.toFixed(1)+'km':' ／ 均一運賃区間')+'。登録済み距離データがあります。';}
+  else{mapStatus.classList.add('check');mapStatus.textContent='要確認：'+line+'　'+a+' → '+b+'。この区間の距離データは未登録です。';}
+ }
+ function selectStation(name){if(!fromName||(fromName&&toName)){fromName=name;toName='';}else if(name===fromName){fromName='';toName='';}else{toName=name;}renderRoute();renderNetworkSelection();assess();}
+ function renderRoute(){
+  const line=mapLine.value,list=(stations[line]||'').split(','),color=routeColors[line]||'#526b91';mapTrack.innerHTML='';
+  list.forEach(name=>{const btn=document.createElement('button');btn.type='button';btn.className='map-stop'+((name===fromName||name===toName)?' selected':'');btn.style.setProperty('--route-color',color);btn.setAttribute('aria-label',name+'を選択');const dot=document.createElement('span');dot.className='dot';const label=document.createElement('span');label.className='station-label';label.textContent=name;btn.append(dot,label);btn.addEventListener('click',()=>selectStation(name));mapTrack.append(btn);});
+ }
+ function renderNetworkSelection(){
+  svg.querySelectorAll('.net-node').forEach(el=>el.classList.toggle('selected',el.dataset.station===fromName||el.dataset.station===toName));
+ }
+ function renderNetwork(){
+  const nodeLines=new Map(),edges=[];
+  mapLines.forEach(line=>{const arr=(stations[line]||'').split(',').filter(Boolean);arr.forEach(n=>{if(!nodeLines.has(n))nodeLines.set(n,new Set());nodeLines.get(n).add(line);});for(let i=1;i<arr.length;i++)edges.push({a:arr[i-1],b:arr[i],line});});
+  const names=[...nodeLines.keys()],nodes=names.map((name,i)=>({name,x:600+Math.cos(i*2.399)*280,y:450+Math.sin(i*2.399)*230,vx:0,vy:0,lines:nodeLines.get(name)}));
+  const byName=new Map(nodes.map(n=>[n.name,n]));
+  // Seed each station from the route it belongs to, then relax shared nodes into a connected graph.
+  mapLines.forEach((line,li)=>{const arr=(stations[line]||'').split(',').filter(Boolean),angle=li/mapLines.length*Math.PI*2;arr.forEach((name,i)=>{const n=byName.get(name),t=arr.length<2?.5:i/(arr.length-1);const spread=(t-.5)*430;n.x+=Math.cos(angle)*spread*.22+Math.cos(angle+Math.PI/2)*55;n.y+=Math.sin(angle)*spread*.22+Math.sin(angle+Math.PI/2)*55;});});
+  nodes.forEach(n=>{n.x=600+(n.x-600)/Math.max(1,n.lines.size);n.y=450+(n.y-450)/Math.max(1,n.lines.size);});
+  const springs=edges.map(e=>({a:byName.get(e.a),b:byName.get(e.b),line:e.line}));
+  for(let step=0;step<180;step++){
+   const force=step<80?0.0009:0.00045;
+   for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const p=nodes[i],q=nodes[j],dx=p.x-q.x,dy=p.y-q.y,d2=dx*dx+dy*dy+25,d=Math.sqrt(d2),f=force*4200/d2;p.vx+=dx/d*f;p.vy+=dy/d*f;q.vx-=dx/d*f;q.vy-=dy/d*f;}
+   springs.forEach(e=>{const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,d=Math.max(1,Math.hypot(dx,dy)),f=(d-42)*.012;e.a.vx+=dx/d*f;e.a.vy+=dy/d*f;e.b.vx-=dx/d*f;e.b.vy-=dy/d*f;});
+   nodes.forEach(n=>{n.vx+=(600-n.x)*.0008;n.vy+=(450-n.y)*.0008;n.vx*=.82;n.vy*=.82;n.x=Math.max(35,Math.min(1165,n.x+n.vx));n.y=Math.max(35,Math.min(865,n.y+n.vy));});
+  }
+  const NS='http://www.w3.org/2000/svg';svg.innerHTML='';
+  const edgeLayer=document.createElementNS(NS,'g');edgeLayer.setAttribute('class','net-edges');
+  springs.forEach(e=>{const el=document.createElementNS(NS,'line');el.setAttribute('x1',e.a.x);el.setAttribute('y1',e.a.y);el.setAttribute('x2',e.b.x);el.setAttribute('y2',e.b.y);el.setAttribute('class','net-edge');el.setAttribute('stroke',routeColors[e.line]||'#526b91');el.setAttribute('data-line',e.line);edgeLayer.append(el);});svg.append(edgeLayer);
+  const nodeLayer=document.createElementNS(NS,'g');
+  nodes.forEach(n=>{const g=document.createElementNS(NS,'g');g.setAttribute('class','net-node'+(n.lines.size>1?' interchange':'')+((n.name===fromName||n.name===toName)?' selected':''));g.dataset.station=n.name;g.setAttribute('transform','translate('+n.x+' '+n.y+')');g.setAttribute('tabindex','0');g.setAttribute('role','button');g.setAttribute('aria-label',n.name+'／'+[...n.lines].join('・'));const circle=document.createElementNS(NS,'circle');circle.setAttribute('r',n.lines.size>1?8:5);g.append(circle);
+   if(n.lines.size>1||['東京','新宿','渋谷','池袋','上野','品川','秋葉原','北千住','大手町','新橋','赤羽','日暮里','飯田橋','御茶ノ水','四ツ谷','中野','錦糸町','大崎'].includes(n.name)){const t=document.createElementNS(NS,'text');t.setAttribute('x',10);t.setAttribute('y',-8);t.textContent=n.name;g.append(t);}
+   g.addEventListener('click',()=>selectStation(n.name));g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectStation(n.name);}});nodeLayer.append(g);
+  });svg.append(nodeLayer);
+ }
+ document.querySelectorAll('.map-tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.map-tab').forEach(x=>x.classList.toggle('active',x===btn));const mode=btn.dataset.view;networkPanel.hidden=mode==='route';routePanel.hidden=mode==='network';}));
+ mapLine.addEventListener('change',()=>{fromName='';toName='';renderRoute();renderNetworkSelection();assess();});
+ document.getElementById('mapClear').addEventListener('click',()=>{fromName='';toName='';renderRoute();renderNetworkSelection();assess();});
+ renderRoute();renderNetwork();
+})();">${esc(document.getElementById('diff').textContent)}</text><text x="70" y="875" fill="#18243b" font-size="30" font-weight="bold">${esc(document.getElementById('verdict').textContent)}</text>${rows.slice(0,9).map((r,i)=>`<text x="80" y="${950+i*38}" fill="#18243b" font-size="23">${esc(r)}</text>`).join('')}<text x="70" y="1300" fill="#66758d" font-size="20">公式確認済み運賃と未確定区間を分けて表示</text></svg>`;
  const u=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'})),im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=1080;c.height=1350;c.getContext('2d').drawImage(im,0,0);URL.revokeObjectURL(u);c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='東京フリーきっぷ比較.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);},'image/png');};im.src=u;
 };
 createTrip();
