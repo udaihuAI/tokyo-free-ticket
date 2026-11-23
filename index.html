@@ -285,6 +285,16 @@ main.wrap,.app-layout,.app-panel,#mapAppPanel,#coverageMap,#railExplorer{width:1
 .rail-controls .field,.rail-controls select,.rail-controls input{min-width:0;width:100%}
 .rail-network-canvas{width:100%;min-width:0;max-width:100%}
 @media(min-width:700px){.rail-controls{grid-template-columns:repeat(3,minmax(0,1fr))}.rail-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}}
+/* Fix intrinsic-width overflow in route-only view */
+#mapAppPanel,#coverageMap,#railExplorer,#railRouteView,#railStationView,#railTransferView{min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+#railRouteView[hidden],#railNetworkView[hidden],#railStationView[hidden],#railTransferView[hidden]{display:none!important}
+#railRouteView .map-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;width:100%;min-width:0}
+#railRouteView .map-toolbar .field{min-width:0}
+#railRouteView .map-track-wrap{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;contain:inline-size}
+#railRouteView .map-track{width:max-content;min-width:max-content;max-width:none}
+#railNetwork{width:100%;height:620px;min-height:420px;max-width:100%;position:relative;overflow:hidden}
+#railNetwork .leaflet-container{width:100%;height:100%;min-width:0;min-height:420px}
+@media(max-width:700px){#railRouteView .map-toolbar{grid-template-columns:minmax(0,1fr)}#railRouteView .map-toolbar button{width:100%}}
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -796,7 +806,7 @@ createTrip();
  document.getElementById('mapClear').addEventListener('click',()=>{fromName='';toName='';render();});render();
 })();
 
-(function(){const layout=document.getElementById('appLayout'),calc=document.getElementById('calculatorPanel'),map=document.getElementById('mapAppPanel');document.querySelectorAll('.app-nav-btn').forEach(btn=>btn.addEventListener('click',()=>{const mode=btn.dataset.screen;layout.classList.toggle('both',mode==='both');calc.hidden=mode==='map';map.hidden=mode==='calculator';document.querySelectorAll('.app-nav-btn').forEach(b=>b.classList.toggle('active',b===btn));}));})();</script>
+(function(){const layout=document.getElementById('appLayout'),calc=document.getElementById('calculatorPanel'),map=document.getElementById('mapAppPanel');document.querySelectorAll('.app-nav-btn').forEach(btn=>btn.addEventListener('click',()=>{const mode=btn.dataset.screen;layout.classList.toggle('both',mode==='both');calc.hidden=mode==='map';map.hidden=mode==='calculator';document.querySelectorAll('.app-nav-btn').forEach(b=>b.classList.toggle('active',b===btn));if(mode!=='calculator'){requestAnimationFrame(()=>{if(railMap)railMap.invalidateSize(true);else renderNetwork();});}}));})();</script>
 <script>
 (function(){
 const $=id=>document.getElementById(id),palette=['#80a943','#e66b45','#e2c43b','#39a6d8','#36a66a','#d65b75','#e87532','#4f9c62','#e67a43','#9aa7b5','#4e9caa','#4aa66d','#70b5a0','#c85b91','#f39700','#e8383d','#9ca7ad','#00a7db','#00a650','#c1a300','#8f76b5','#00a6a9','#9b5ba5','#e85289','#0072bc','#6cbb5a','#b6007a','#b6a06a','#d66b9c'];
@@ -807,7 +817,7 @@ const external=[['新宿','新宿三丁目',7],['新宿','西武新宿',8],['新
 let favorites=[];try{favorites=JSON.parse(localStorage.getItem('tokyoRailFavorites')||'[]')}catch(e){}
 const stationInput=$('railStationSelect'),stationResults=$('railStationResults'),network=$('railNetwork');
 function visibleLines(){const c=$('railCompany').value,q=$('railSearch').value.trim();return lines.filter(n=>(c==='all'||company(n)===c)&&(!q||n.includes(q)||(stations[n]||'').includes(q)));}
-function show(v){['network','route','station','transfer'].forEach(x=>$('rail'+x[0].toUpperCase()+x.slice(1)+'View').hidden=x!==v);document.querySelectorAll('.rail-tab').forEach(b=>b.classList.toggle('active',b.dataset.railView===v));}
+function show(v){['network','route','station','transfer'].forEach(x=>$('rail'+x[0].toUpperCase()+x.slice(1)+'View').hidden=x!==v);document.querySelectorAll('.rail-tab').forEach(b=>b.classList.toggle('active',b.dataset.railView===v));if(v==='network'){requestAnimationFrame(()=>{if(railMap){railMap.invalidateSize(true);renderNetwork();}else renderNetwork();});}}
 document.querySelectorAll('.rail-tab').forEach(b=>b.addEventListener('click',()=>show(b.dataset.railView)));
 all.forEach(st=>{let o=document.createElement('option');o.value=st;$('railStationList').append(o);o=document.createElement('option');o.value=st;o.textContent=st;stationInput.append(o);});
 function renderFavorites(){const box=$('railFavorites'),sel=$('railFavoritesSelect');box.innerHTML='';sel.innerHTML='<option value="">お気に入り駅を選択</option>';favorites.forEach(st=>{let o=document.createElement('option');o.value=st;o.textContent=st;sel.append(o);let b=document.createElement('button');b.type='button';b.className='rail-station';b.textContent='★ '+st;b.onclick=()=>{stationInput.value=st;show('station');renderStation();};box.append(b);});}
