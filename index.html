@@ -407,6 +407,47 @@ button:hover:after{animation:premium-button-sheen .8s ease}
   .rail-network-canvas .rail-node.active circle,.map-stop.selected .dot{animation:none!important}
 }
 
+
+/* Premium route & map motion pass 03 */
+@keyframes premium-route-line-in{
+  from{opacity:0;transform:translateX(-9px) scale(.985);filter:blur(2px)}
+  to{opacity:1;transform:translateX(0) scale(1);filter:blur(0)}
+}
+@keyframes premium-route-rail-in{
+  from{transform:scaleY(.15);opacity:.15}
+  to{transform:scaleY(1);opacity:1}
+}
+@keyframes premium-map-point-in{
+  from{opacity:0;transform:scale(.55)}
+  to{opacity:1;transform:scale(1)}
+}
+.rail-result{transform-origin:top center}
+.rail-result .rail-result-top{animation:premium-route-line-in .38s cubic-bezier(.2,.7,.25,1) both}
+.rail-result h3{animation:premium-route-line-in .42s .05s cubic-bezier(.2,.7,.25,1) both}
+.rail-result .rail-muted{animation:premium-route-line-in .4s .09s ease both}
+.rail-step{
+  transform-origin:left center;
+  animation:premium-route-line-in .34s cubic-bezier(.2,.7,.25,1) both;
+  animation-delay:calc(var(--step-index,0) * 55ms);
+}
+.rail-steps{position:relative}
+.rail-step:before{
+  content:"";position:absolute;left:-3px;top:0;bottom:0;width:2px;
+  background:var(--step-color);opacity:.16;transform-origin:top;
+  animation:premium-route-rail-in .35s ease both;
+  animation-delay:calc(var(--step-index,0) * 55ms);
+}
+.rail-network-canvas .leaflet-overlay-pane path{
+  transition:opacity .42s ease,stroke-width .25s ease;
+}
+#railNetwork .leaflet-marker-icon{animation:premium-map-point-in .32s cubic-bezier(.2,.7,.25,1) both}
+.rail-result:hover .rail-step{filter:saturate(1.12)}
+@media(prefers-reduced-motion:reduce){
+  .rail-result .rail-result-top,.rail-result h3,.rail-result .rail-muted,.rail-step,.rail-step:before,
+  #railNetwork .leaflet-marker-icon{animation:none!important}
+  .rail-network-canvas .leaflet-overlay-pane path{transition:none!important}
+}
+
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -944,7 +985,7 @@ function renderNetwork(){
  shown.forEach(line=>{
   if(line.startsWith('都営バス'))return;
   const seq=(stations[line]||'').split(',').filter(Boolean),pts=seq.map(n=>stationCoords[n]).filter(Boolean);
-  if(pts.length>1){const layer=L.polyline(pts,{color:color(line),weight:4,opacity:.84,lineJoin:'round'}).addTo(railMap);layer.bindTooltip(line,{sticky:true});railLineLayers.push(layer);}
+  if(pts.length>1){const layer=L.polyline(pts,{color:color(line),weight:4,opacity:0,lineJoin:'round'}).addTo(railMap);layer.bindTooltip(line,{sticky:true});railLineLayers.push(layer);requestAnimationFrame(()=>layer.setStyle({opacity:.84}));}
  });
  const seen=new Set(),bounds=[];
  shown.forEach(line=>{
@@ -964,7 +1005,7 @@ function renderNetwork(){
 function makeGraph(){const g=new Map(all.map(st=>[st,[]]));lines.forEach(line=>{const a=(stations[line]||'').split(',').filter(Boolean);for(let i=0;i<a.length-1;i++){g.get(a[i]).push({to:a[i+1],line,mins:3,type:'rail'});g.get(a[i+1]).push({to:a[i],line,mins:3,type:'rail'});}});external.forEach(([a,b,m])=>{g.get(a).push({to:b,line:null,mins:m,type:'outside'});g.get(b).push({to:a,line:null,mins:m,type:'outside'});});return g;}
 const graph=makeGraph();
 function findRoutes(from,to){if(!graph.has(from)||!graph.has(to)||from===to)return[];let q=[{st:from,line:null,path:[from],steps:[],time:0,transfers:0,walkMin:0,trainMin:0}],done=[],best=new Map();let loops=0;while(q.length&&done.length<3&&loops++<16000){q.sort((a,b)=>a.time-b.time);const c=q.shift();if(c.st===to){done.push(c);continue;}if(c.path.length>40)continue;for(const e of graph.get(c.st)){if(c.path.includes(e.to))continue;const inside=e.type==='rail'&&c.line&&c.line!==e.line,extra=inside?5:0,nt=c.time+e.mins+extra,nl=e.type==='outside'?null:e.line,key=e.to+'|'+(nl||'-');if((best.get(key)??Infinity)<nt)continue;best.set(key,nt);q.push({st:e.to,line:nl,path:[...c.path,e.to],steps:[...c.steps,{from:c.st,to:e.to,line:e.line,type:e.type,mins:e.mins,extra}],time:nt,walkMin:c.walkMin+(e.type==='outside'?e.mins:0),trainMin:c.trainMin+(e.type==='rail'?e.mins:0),transfers:c.transfers+(inside||e.type==='outside'?1:0)});}}return done;}
-function renderRoutes(){const from=$('railFrom').value.trim(),to=$('railTo').value.trim(),box=$('railTransferResults');box.innerHTML='';const found=findRoutes(from,to);if(!found.length){box.innerHTML='<div class="rail-empty">経路が見つかりません。駅名や登録区間を確認してください。</div>';return;}found.forEach((r,i)=>{const card=document.createElement('div');card.className='rail-result';const top=document.createElement('div');top.className='rail-result-top';const b=document.createElement('b');b.textContent='候補 '+(i+1);const badge=document.createElement('span');badge.className='rail-badge';badge.textContent=r.transfers+'回乗換';top.append(b,badge);const h=document.createElement('h3');h.textContent='合計 約'+Math.round(r.time)+'分';const summary=document.createElement('p');summary.className='rail-muted';summary.textContent='駅間移動 約'+r.trainMin+'分 ／ 駅外乗換の徒歩 '+r.walkMin+'分';const steps=document.createElement('div');steps.className='rail-steps';r.steps.forEach(st=>{const d=document.createElement('div');d.className='rail-step';d.style.setProperty('--step-color',st.type==='outside'?'#d79b32':color(st.line));d.textContent=st.type==='outside'?'駅外乗換：'+st.from+' → '+st.to+'（徒歩約'+st.mins+'分）':st.line+'：'+st.from+' → '+st.to+(st.extra?'（駅内乗換 約'+st.extra+'分）':'');steps.append(d);});const path=document.createElement('p');path.className='rail-muted';path.textContent=r.path.join(' → ');card.append(top,h,summary,steps,path);box.append(card);});}
+function renderRoutes(){const from=$('railFrom').value.trim(),to=$('railTo').value.trim(),box=$('railTransferResults');box.innerHTML='';const found=findRoutes(from,to);if(!found.length){box.innerHTML='<div class="rail-empty">経路が見つかりません。駅名や登録区間を確認してください。</div>';return;}found.forEach((r,i)=>{const card=document.createElement('div');card.className='rail-result';const top=document.createElement('div');top.className='rail-result-top';const b=document.createElement('b');b.textContent='候補 '+(i+1);const badge=document.createElement('span');badge.className='rail-badge';badge.textContent=r.transfers+'回乗換';top.append(b,badge);const h=document.createElement('h3');h.textContent='合計 約'+Math.round(r.time)+'分';const summary=document.createElement('p');summary.className='rail-muted';summary.textContent='駅間移動 約'+r.trainMin+'分 ／ 駅外乗換の徒歩 '+r.walkMin+'分';const steps=document.createElement('div');steps.className='rail-steps';r.steps.forEach((st,stepIndex)=>{const d=document.createElement('div');d.className='rail-step';d.style.setProperty('--step-index',stepIndex);d.style.setProperty('--step-color',st.type==='outside'?'#d79b32':color(st.line));d.textContent=st.type==='outside'?'駅外乗換：'+st.from+' → '+st.to+'（徒歩約'+st.mins+'分）':st.line+'：'+st.from+' → '+st.to+(st.extra?'（駅内乗換 約'+st.extra+'分）':'');steps.append(d);});const path=document.createElement('p');path.className='rail-muted';path.textContent=r.path.join(' → ');card.append(top,h,summary,steps,path);box.append(card);});}
 document.addEventListener('rail-map-show',()=>{requestAnimationFrame(()=>{if(railMap)railMap.invalidateSize(true);renderNetwork();});});
 $('railCompany').addEventListener('change',renderNetwork);$('railSearch').addEventListener('input',renderNetwork);$('railStationSelect').addEventListener('change',renderStation);$('railFavoritesSelect').addEventListener('change',e=>{if(e.target.value){stationInput.value=e.target.value;show('station');renderStation();}});$('railFind').addEventListener('click',renderRoutes);$('railSwap').addEventListener('click',()=>{const a=$('railFrom').value;$('railFrom').value=$('railTo').value;$('railTo').value=a;});renderFavorites();renderNetwork();
 })();
