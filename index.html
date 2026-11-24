@@ -301,6 +301,47 @@ main.wrap,.app-layout,.app-panel,#mapAppPanel,#coverageMap,#railExplorer{width:1
 #railNetwork .leaflet-tile-container img{max-width:none!important}
 #railNetwork .station-name-label{background:rgba(255,255,255,.94);border:1px solid rgba(31,58,92,.22);border-radius:4px;box-shadow:0 1px 4px rgba(15,35,65,.22);color:#142744;font-size:10px;font-weight:800;padding:2px 4px;white-space:nowrap}
 #railNetwork .station-name-label:before{display:none}
+
+/* Premium polish pass — visual-only; preserves existing DOM and controls */
+:root{
+ --premium-blue:#3979ef;--premium-violet:#7667e8;
+ --premium-shadow:0 16px 42px rgba(23,48,91,.10);
+}
+.app-nav{gap:9px;align-items:center}
+.app-nav-btn{border:1px solid rgba(255,255,255,.78);border-radius:13px;min-height:46px;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.app-nav-btn.active{background:linear-gradient(120deg,#285fca,#655bd0);color:#fff;box-shadow:0 8px 20px rgba(48,91,185,.24)}
+.card{transition:box-shadow .22s ease,border-color .22s ease}
+.card:hover{box-shadow:var(--premium-shadow),inset 0 1px 0 rgba(255,255,255,.9)}
+.trip,.stat,.rail-result{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.trip:hover,.rail-result:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(31,61,112,.10)}
+input,select{min-height:44px}
+button{min-height:42px}
+.primary{background:linear-gradient(120deg,var(--premium-blue),var(--premium-violet))}
+.rail-network-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rail-network-canvas{border-radius:16px;border:1px solid rgba(120,147,190,.24);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 8px 22px rgba(24,48,86,.07)}
+#railNetwork .station-name-label{font-size:10px;font-weight:750;letter-spacing:.01em;padding:2px 5px;border-radius:6px;border:1px solid rgba(83,111,155,.24);box-shadow:0 2px 7px rgba(14,33,64,.17)}
+.rail-result{border-radius:16px}
+.rail-result h3{font-size:22px;letter-spacing:-.02em}
+.rail-step{border-left:3px solid var(--step-color);padding:8px 11px;margin:7px 0;border-radius:0 9px 9px 0;background:rgba(117,151,205,.08)}
+.verdict{position:relative;overflow:hidden}
+.verdict:after{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(#3979ef,#7667e8)}
+@media(max-width:700px){
+ .app-nav{display:grid;grid-template-columns:1fr 1fr}
+ .app-nav-btn{min-width:0;padding:10px 8px;font-size:13px}
+ .rail-network-canvas{min-height:390px}
+ .rail-network-head{align-items:flex-start;flex-direction:column}
+ .rail-result h3{font-size:20px}
+}
+@media(prefers-color-scheme:dark){
+ .rail-network-canvas{border-color:rgba(173,195,232,.18);box-shadow:0 10px 28px rgba(0,0,0,.2)}
+ .rail-step{background:rgba(114,148,207,.12)}
+ .app-nav-btn{border-color:rgba(163,187,227,.2)}
+}
+@media(prefers-reduced-motion:reduce){
+ .card,.trip,.stat,.rail-result,.app-nav-btn{transition:none!important}
+ .card:hover,.trip:hover,.rail-result:hover{transform:none}
+}
+
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
