@@ -960,7 +960,7 @@ createTrip();
 /* Interactive schematic coverage map */
 (function initCoverageMap(){
  const mapLine=document.getElementById('mapLine'),mapTrack=document.getElementById('mapTrack'),mapStatus=document.getElementById('mapStatus');
- const colors=['#80a943','#e66b45','#e2c43b','#39a6d8','#36a66a','#d65b75','#e87532','#4f9c62','#e67a43','#9aa7b5','#4e9caa','#4aa66d','#70b5a0','#c85b91','#f39700','#e8383d','#9ca7ad','#00a7db','#00a650','#c1a300','#8f76b5','#00a6a9','#9b5ba5','#e85289','#0072bc','#6cbb5a','#b6007a','#b6a06a','#d66b9c'];
+ const colors=window.railLineColors||{};
  const mapLines=Object.keys(stations).filter(x=>!x.startsWith('都営バス'));let fromName='',toName='';
  mapLine.innerHTML=mapLines.map(x=>'<option value="'+x.replace(/"/g,'&quot;')+'">'+x+'</option>').join('');
  function assess(){
@@ -977,7 +977,7 @@ createTrip();
   else{mapStatus.classList.add('check');mapStatus.textContent='要確認：'+line+'　'+a+' → '+b+'。区間データが未登録、または別系統のため自動計算できない可能性があります。';}
  }
  function render(){
-  const line=mapLine.value,list=(stations[line]||'').split(','),idx=mapLines.indexOf(line),color=colors[idx%colors.length];mapTrack.innerHTML='';
+  const line=mapLine.value,list=(stations[line]||'').split(','),color=colors[line]||'#66758D';mapTrack.innerHTML='';
   list.forEach(name=>{
    const btn=document.createElement('button');btn.type='button';btn.className='map-stop'+((name===fromName||name===toName)?' selected':'');btn.style.setProperty('--route-color',color);btn.setAttribute('aria-label',name+'を選択');
    const dot=document.createElement('span');dot.className='dot';const label=document.createElement('span');label.className='station-label';label.textContent=name;btn.append(dot,label);
@@ -991,8 +991,22 @@ createTrip();
 (function(){const layout=document.getElementById('appLayout'),calc=document.getElementById('calculatorPanel'),map=document.getElementById('mapAppPanel');document.querySelectorAll('.app-nav-btn').forEach(btn=>btn.addEventListener('click',()=>{const mode=btn.dataset.screen;layout.classList.toggle('both',mode==='both');calc.hidden=mode==='map';map.hidden=mode==='calculator';document.querySelectorAll('.app-nav-btn').forEach(b=>b.classList.toggle('active',b===btn));if(mode!=='calculator'){document.dispatchEvent(new Event('rail-map-show'));}}));})();</script>
 <script>
 (function(){
-const $=id=>document.getElementById(id),palette=['#80a943','#e66b45','#e2c43b','#39a6d8','#36a66a','#d65b75','#e87532','#4f9c62','#e67a43','#9aa7b5','#4e9caa','#4aa66d','#70b5a0','#c85b91','#f39700','#e8383d','#9ca7ad','#00a7db','#00a650','#c1a300','#8f76b5','#00a6a9','#9b5ba5','#e85289','#0072bc','#6cbb5a','#b6007a','#b6a06a','#d66b9c'];
-const lines=Object.keys(stations).filter(n=>!n.startsWith('都営バス')),color=n=>palette[lines.indexOf(n)%palette.length]||'#6688bb',company=n=>n.startsWith('JR')?'jr':n.startsWith('東京メトロ')?'metro':n.startsWith('都営地下鉄')?'toei':'other';
+const $=id=>document.getElementById(id);
+/* Official route identity colors: Tokyo Metro / Toei line colors, JR East route-map colors. */
+const lineColors={
+ "JR山手線":"#80C241","JR中央線快速":"#F15A22","JR総武線各駅停車":"#FFD400","JR京浜東北線":"#00A7DB",
+ "JR埼京線":"#00AC84","JR湘南新宿ライン":"#E60012","JR東海道線":"#F68B1E","JR宇都宮線":"#F68B1E",
+ "JR高崎線":"#F68B1E","JR横須賀線":"#0072BC","JR総武快速線":"#0072BC","JR常磐線快速":"#00A0A8",
+ "JR常磐線各駅停車":"#6CBF55","JR京葉線":"#C9252B",
+ "東京メトロ銀座線":"#F39700","東京メトロ丸ノ内線":"#E60012","東京メトロ丸ノ内線（方南町支線）":"#E60012",
+ "東京メトロ日比谷線":"#9CA3A8","東京メトロ東西線":"#00A7DB","東京メトロ千代田線":"#00A650",
+ "東京メトロ有楽町線":"#C1A300","東京メトロ半蔵門線":"#8F76B5","東京メトロ南北線":"#00A6A0",
+ "東京メトロ副都心線":"#9B5BA5","都営地下鉄浅草線":"#E85289","都営地下鉄三田線":"#0072BC",
+ "都営地下鉄新宿線":"#6CBB5A","都営地下鉄大江戸線":"#B6007A","日暮里・舎人ライナー":"#E87532",
+ "東京さくらトラム（都電荒川線）":"#D66B9C"
+};
+window.railLineColors=lineColors;
+const lines=Object.keys(stations).filter(n=>!n.startsWith('都営バス')),color=n=>lineColors[n]||'#66758D',company=n=>n.startsWith('JR')?'jr':n.startsWith('東京メトロ')?'metro':n.startsWith('都営地下鉄')?'toei':'other';
 const all=[...new Set(lines.flatMap(n=>(stations[n]||'').split(',').filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'ja')),byStation=new Map();
 all.forEach(st=>byStation.set(st,lines.filter(n=>(stations[n]||'').split(',').includes(st))));
 const external=[['新宿','新宿三丁目',7],['新宿','西武新宿',8],['新宿','新宿西口',6],['渋谷','神泉',8],['池袋','東池袋',8],['東京','大手町',8],['有楽町','日比谷',6],['銀座','銀座一丁目',6],['上野','京成上野',5],['日暮里','西日暮里',8],['秋葉原','岩本町',6],['浜松町','大門',4],['赤羽','赤羽岩淵',9],['飯田橋','後楽園',9],['御茶ノ水','新御茶ノ水',6],['馬喰町','馬喰横山',5],['新日本橋','三越前',5],['八丁堀','宝町',8]].filter(x=>all.includes(x[0])&&all.includes(x[1]));
