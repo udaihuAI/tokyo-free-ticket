@@ -248,7 +248,7 @@ a{font-weight:650}
 .rail-favorites{display:flex;gap:7px;flex-wrap:wrap}
 .rail-empty{padding:22px;text-align:center;border:1px dashed var(--field-border);border-radius:14px;color:var(--page-muted)}
 @media(max-width:640px){.rail-controls{grid-template-columns:1fr}.rail-tab{min-width:calc(50% - 8px)}}
-.rail-network-canvas{width:100%;overflow:auto;border:1px solid var(--glass-border);border-radius:18px;background:radial-gradient(ellipse at center,rgba(90,130,210,.10),transparent 70%),var(--glass-soft)}.rail-network-canvas svg{display:block;width:100%;min-width:850px;height:auto}.rail-network-canvas .rail-node{cursor:pointer}.rail-network-canvas .rail-node circle{fill:var(--page-bg);stroke:var(--page-ink);stroke-width:1.5}.rail-network-canvas .rail-node.interchange circle{stroke:#e8b83f;stroke-width:3}.rail-network-canvas .rail-node text{font-size:10px;fill:var(--page-ink);paint-order:stroke;stroke:var(--page-bg);stroke-width:3px;pointer-events:none}.rail-network-canvas .rail-node.active circle{fill:#3276e8;stroke:white;stroke-width:3}.rail-network-canvas .outside-edge{stroke:#d79b32;stroke-width:2.5;stroke-dasharray:5 5;opacity:.85}.rail-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--page-muted);padding:8px 2px}.rail-steps{display:grid;gap:7px;margin-top:9px}.rail-step{border-left:4px solid var(--step-color,#888);padding:6px 9px;font-size:12px;background:var(--glass-soft);border-radius:0 9px 9px 0}/* Refined glass UI + ordered railway atlas */
+.rail-network-canvas{width:100%;overflow:auto;border:1px solid var(--glass-border);border-radius:18px;background:radial-gradient(ellipse at center,rgba(90,130,210,.10),transparent 70%),var(--glass-soft)}.rail-network-canvas svg{display:block;width:100%;min-width:850px;height:auto}.rail-network-canvas .rail-node{cursor:pointer}.rail-network-canvas .rail-node circle{fill:var(--page-bg);stroke:var(--page-ink);stroke-width:1.5}.rail-network-canvas .rail-node.interchange circle{stroke:#e8b83f;stroke-width:3}.rail-network-canvas .rail-node text{font-size:10px;fill:var(--page-ink);paint-order:stroke;stroke:var(--page-bg);stroke-width:3px;pointer-events:none}.rail-network-canvas .rail-node.active circle{fill:#3276e8;stroke:white;stroke-width:3}.rail-network-canvas .outside-edge{stroke:#d79b32;stroke-width:2.5;stroke-dasharray:5 5;opacity:.85}.rail-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--page-muted);padding:8px 2px}.rail-color-legend{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 10px}.rail-color-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--glass-border);border-radius:999px;padding:5px 9px;background:var(--glass-soft);color:var(--page-ink);font:650 11px/1.2 inherit;cursor:pointer;transition:transform .18s,border-color .18s}.rail-color-chip:hover{transform:translateY(-2px);border-color:var(--page-accent)}.rail-color-dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.8)}.rail-color-chip:focus-visible{outline:3px solid var(--page-accent);outline-offset:2px}.rail-steps{display:grid;gap:7px;margin-top:9px}.rail-step{border-left:4px solid var(--step-color,#888);padding:6px 9px;font-size:12px;background:var(--glass-soft);border-radius:0 9px 9px 0}/* Refined glass UI + ordered railway atlas */
 body{background:radial-gradient(ellipse at 12% 0%,rgba(76,126,230,.15),transparent 38%),radial-gradient(ellipse at 92% 14%,rgba(128,91,210,.10),transparent 34%),var(--page-bg)}
 header{background:linear-gradient(120deg,#10264a 0%,#1e4e91 55%,#5269bd 100%);padding:34px 0 38px;box-shadow:0 18px 45px rgba(23,54,105,.18)}
 header h1{letter-spacing:.02em;font-size:clamp(25px,4vw,38px)}header p{color:#e0eaff;max-width:760px;line-height:1.7}
@@ -527,7 +527,7 @@ button:hover:after{animation:premium-button-sheen .8s ease}
   <div class="field"><label for="railFavoritesSelect">お気に入り</label><select id="railFavoritesSelect"><option value="">お気に入り駅を選択</option></select></div>
  </div>
  <div class="rail-favorites" id="railFavorites"></div>
- <div id="railNetworkView"><div class="rail-network-head"><b>東京鉄道ネットワーク</b><span class="rail-muted" id="railMapCount"></span></div><div class="rail-network-canvas" id="railNetwork" style="height:680px;min-height:420px"><div class="rail-empty">ネットワークを構築しています…</div></div><div class="rail-legend"><span>● 駅</span><span>◎ 乗換駅</span><span>模式路線図：駅座標ベース</span></div><p class="rail-muted">駅の緯度・経度を使った地理ベースの路線図です。背景地図を使わず、駅座標と路線データから路線網を表示します。</p></div>
+ <div id="railNetworkView"><div class="rail-network-head"><b>東京鉄道ネットワーク</b><span class="rail-muted" id="railMapCount"></span></div><div class="rail-color-legend" id="railMapLegend" aria-label="表示中の路線カラー"></div><div class="rail-network-canvas" id="railNetwork" style="height:680px;min-height:420px"><div class="rail-empty">ネットワークを構築しています…</div></div><div class="rail-legend"><span>● 駅</span><span>◎ 乗換駅</span><span>模式路線図：駅座標ベース</span></div><p class="rail-muted">駅の緯度・経度を使った地理ベースの路線図です。背景地図を使わず、駅座標と路線データから路線網を表示します。</p></div>
  <div id="railRouteView" hidden>
   <div class="map-toolbar"><div class="field"><label for="mapLine">路線を選択</label><select id="mapLine"></select></div><button class="soft" id="mapClear" type="button">選択をクリア</button></div>
   <div class="map-track-wrap" aria-label="駅を選択できる路線図"><div class="map-track" id="mapTrack"></div></div>
@@ -977,7 +977,7 @@ createTrip();
   else{mapStatus.classList.add('check');mapStatus.textContent='要確認：'+line+'　'+a+' → '+b+'。区間データが未登録、または別系統のため自動計算できない可能性があります。';}
  }
  function render(){
-  const line=mapLine.value,list=(stations[line]||'').split(','),color=colors[line]||'#66758D';mapTrack.innerHTML='';
+  const line=mapLine.value,list=(stations[line]||'').split(','),color=(window.railLineColors||{})[line]||'#66758D';mapTrack.innerHTML='';
   list.forEach(name=>{
    const btn=document.createElement('button');btn.type='button';btn.className='map-stop'+((name===fromName||name===toName)?' selected':'');btn.style.setProperty('--route-color',color);btn.setAttribute('aria-label',name+'を選択');
    const dot=document.createElement('span');dot.className='dot';const label=document.createElement('span');label.className='station-label';label.textContent=name;btn.append(dot,label);
@@ -1000,8 +1000,8 @@ const lineColors={
  "JR常磐線各駅停車":"#6CBF55","JR京葉線":"#C9252B",
  "東京メトロ銀座線":"#F39700","東京メトロ丸ノ内線":"#E60012","東京メトロ丸ノ内線（方南町支線）":"#E60012",
  "東京メトロ日比谷線":"#9CA3A8","東京メトロ東西線":"#00A7DB","東京メトロ千代田線":"#00A650",
- "東京メトロ有楽町線":"#C1A300","東京メトロ半蔵門線":"#8F76B5","東京メトロ南北線":"#00A6A0",
- "東京メトロ副都心線":"#9B5BA5","都営地下鉄浅草線":"#E85289","都営地下鉄三田線":"#0072BC",
+ "東京メトロ有楽町線":"#C1A300","東京メトロ半蔵門線":"#8F76B5","東京メトロ南北線":"#00A95C",
+ "東京メトロ副都心線":"#9B6B43","都営地下鉄浅草線":"#E85289","都営地下鉄三田線":"#0072BC",
  "都営地下鉄新宿線":"#6CBB5A","都営地下鉄大江戸線":"#B6007A","日暮里・舎人ライナー":"#E87532",
  "東京さくらトラム（都電荒川線）":"#D66B9C"
 };
@@ -1042,6 +1042,13 @@ function renderNetwork(){
   });
  });
  $('railMapCount').textContent=shown.length+'路線・'+seen.size+'駅'+(q?' ／ 検索一致 '+matchedBounds.length+'駅':'');
+ const legend=$('railMapLegend');
+ if(legend){legend.innerHTML='';shown.filter(line=>!line.startsWith('都営バス')).forEach(line=>{
+  const chip=document.createElement('button');chip.type='button';chip.className='rail-color-chip';chip.title=line+'だけを表示';
+  const dot=document.createElement('span');dot.className='rail-color-dot';dot.style.background=color(line);
+  const label=document.createElement('span');label.textContent=line.replace(/^JR/,'').replace(/^東京メトロ/,'').replace(/^都営地下鉄/,'');
+  chip.append(dot,label);chip.addEventListener('click',()=>{$('railSearch').value=line;$('railCompany').value='all';renderNetwork();});legend.append(chip);
+ });}
  if(matchedBounds.length){railMap.fitBounds(L.latLngBounds(matchedBounds),{padding:[56,56],maxZoom:14,animate:true,duration:.55});}
  else if(bounds.length){railMap.fitBounds(L.latLngBounds(bounds),{padding:[28,28],maxZoom:12,animate:true,duration:.55});}
  else{railMap.setView([35.68,139.76],11,{animate:true,duration:.45});}
