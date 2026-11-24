@@ -480,6 +480,9 @@ button:hover:after{animation:premium-button-sheen .8s ease}
 
 /* Phase 7: richer station detail panel */
 .station-detail-card{display:grid;gap:10px}.station-detail-title{font-size:21px;margin:0}.station-line-list{display:flex;gap:7px;flex-wrap:wrap}.station-line-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--glass-border);border-radius:999px;background:var(--glass);font-size:12px}.station-line-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}.station-route-actions{display:flex;gap:8px;flex-wrap:wrap}.station-coordinate-card{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.station-coordinate-card p{margin:0}.station-section-title{font-size:14px;margin:14px 2px 2px}.station-neighbor-card{display:grid;gap:9px}.station-neighbor-flow{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}.station-neighbor-stop{font-size:12px;color:var(--page-muted);padding:8px 9px;border-radius:10px;background:var(--glass);text-align:center}.station-neighbor-current{font-size:13px;padding:9px 12px;border-radius:11px;background:rgba(50,109,229,.14);text-align:center}.station-coordinate-card a{font-size:12px;color:var(--accent,#3975d7)}@media(max-width:480px){.station-route-actions button{flex:1 1 100%}.station-neighbor-flow{gap:5px}.station-neighbor-stop{padding:7px 5px;font-size:11px}}
+
+/* Phase 8: map popups and route highlighting */
+.rail-map-popup{min-width:150px;display:grid;gap:7px}.rail-map-popup p{margin:0;font-size:12px;color:#64748b}.rail-map-popup button{width:100%;padding:7px 10px}.route-map-button{margin-top:5px}
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -1078,7 +1081,14 @@ function renderNetwork(){
    const p=stationCoords[name];if(!p||seen.has(name))return;seen.add(name);bounds.push(p);
    const match=!!(q&&name.includes(q)),inter=(byStation.get(name)||[]).filter(l=>shown.includes(l)).length>1;if(match)matchedBounds.push(p);
    const marker=L.circleMarker(p,{radius:match?8:inter?6:4,color:match?'#17386e':inter?'#bd8610':'#314c70',weight:inter?3:1.5,fillColor:match?'#3276e8':inter?'#ffe18a':'#fff',fillOpacity:1}).addTo(railMap);
-   marker.bindTooltip(name,{permanent:true,direction:'top',offset:[0,-5],opacity:.95,className:'station-name-label'});marker.on('click',()=>{stationInput.value=name;show('station');renderStation();});
+   marker.bindTooltip(name,{permanent:true,direction:'top',offset:[0,-5],opacity:.95,className:'station-name-label'});
+   const popup=document.createElement('div');popup.className='rail-map-popup';
+   const popupName=document.createElement('b');popupName.textContent=name;
+   const popupInfo=document.createElement('p');popupInfo.textContent=(byStation.get(name)||[]).length+'路線が乗り入れ';
+   const detailBtn=document.createElement('button');detailBtn.type='button';detailBtn.className='soft';detailBtn.textContent='駅の詳細を見る';
+   detailBtn.addEventListener('click',()=>{stationInput.value=name;show('station');renderStation();});
+   popup.append(popupName,popupInfo,detailBtn);marker.bindPopup(popup,{closeButton:true});
+   marker.on('click',()=>marker.openPopup());
    if(match)marker.openTooltip();railStationLayers.push(marker);
   });
  });
@@ -1099,7 +1109,43 @@ function renderNetwork(){
 function makeGraph(){const g=new Map(all.map(st=>[st,[]]));lines.forEach(line=>{const a=(stations[line]||'').split(',').filter(Boolean);for(let i=0;i<a.length-1;i++){g.get(a[i]).push({to:a[i+1],line,mins:3,type:'rail'});g.get(a[i+1]).push({to:a[i],line,mins:3,type:'rail'});}});external.forEach(([a,b,m])=>{g.get(a).push({to:b,line:null,mins:m,type:'outside'});g.get(b).push({to:a,line:null,mins:m,type:'outside'});});return g;}
 const graph=makeGraph();
 function findRoutes(from,to){if(!graph.has(from)||!graph.has(to)||from===to)return[];let q=[{st:from,line:null,path:[from],steps:[],time:0,transfers:0,walkMin:0,trainMin:0}],done=[],best=new Map();let loops=0;while(q.length&&done.length<3&&loops++<16000){q.sort((a,b)=>a.time-b.time);const c=q.shift();if(c.st===to){done.push(c);continue;}if(c.path.length>40)continue;for(const e of graph.get(c.st)){if(c.path.includes(e.to))continue;const inside=e.type==='rail'&&c.line&&c.line!==e.line,extra=inside?5:0,nt=c.time+e.mins+extra,nl=e.type==='outside'?null:e.line,key=e.to+'|'+(nl||'-');if((best.get(key)??Infinity)<nt)continue;best.set(key,nt);q.push({st:e.to,line:nl,path:[...c.path,e.to],steps:[...c.steps,{from:c.st,to:e.to,line:e.line,type:e.type,mins:e.mins,extra}],time:nt,walkMin:c.walkMin+(e.type==='outside'?e.mins:0),trainMin:c.trainMin+(e.type==='rail'?e.mins:0),transfers:c.transfers+(inside||e.type==='outside'?1:0)});}}return done;}
-function renderRoutes(){const from=$('railFrom').value.trim(),to=$('railTo').value.trim(),box=$('railTransferResults');box.innerHTML='';const found=findRoutes(from,to);if(!found.length){box.innerHTML='<div class="rail-empty">経路が見つかりません。駅名や登録区間を確認してください。</div>';return;}found.forEach((r,i)=>{const card=document.createElement('div');card.className='rail-result';const top=document.createElement('div');top.className='rail-result-top';const b=document.createElement('b');b.textContent='候補 '+(i+1);const badge=document.createElement('span');badge.className='rail-badge';badge.textContent=r.transfers+'回乗換';top.append(b,badge);const h=document.createElement('h3');h.textContent='合計 約'+Math.round(r.time)+'分';const summary=document.createElement('p');summary.className='rail-muted';summary.textContent='駅間移動 約'+r.trainMin+'分 ／ 駅外乗換の徒歩 '+r.walkMin+'分';const steps=document.createElement('div');steps.className='rail-steps';r.steps.forEach((st,stepIndex)=>{const d=document.createElement('div');d.className='rail-step';d.style.setProperty('--step-index',stepIndex);d.style.setProperty('--step-color',st.type==='outside'?'#d79b32':color(st.line));d.textContent=st.type==='outside'?'駅外乗換：'+st.from+' → '+st.to+'（徒歩約'+st.mins+'分）':st.line+'：'+st.from+' → '+st.to+(st.extra?'（駅内乗換 約'+st.extra+'分）':'');steps.append(d);});const path=document.createElement('p');path.className='rail-muted';path.textContent=r.path.join(' → ');card.append(top,h,summary,steps,path);box.append(card);});}
+function showRouteOnMap(route){
+ if(!window.L)return;
+ const draw=()=>{
+  if(!railMap)return;
+  if(routeHighlightLayer){railMap.removeLayer(routeHighlightLayer);routeHighlightLayer=null;}
+  const layers=[],bounds=[];
+  route.steps.forEach(step=>{
+   const a=stationCoords[step.from],b=stationCoords[step.to];if(!a||!b)return;
+   const outside=step.type==='outside';
+   const layer=L.polyline([a,b],{color:outside?'#d79b32':color(step.line),weight:outside?5:7,opacity:.98,dashArray:outside?'8 8':null,lineCap:'round',lineJoin:'round'}).addTo(railMap);
+   layers.push(layer);bounds.push(a,b);
+  });
+  if(!layers.length){return;}
+  routeHighlightLayer=L.featureGroup(layers).addTo(railMap);
+  railMap.fitBounds(L.latLngBounds(bounds),{padding:[48,48],maxZoom:14,animate:true,duration:.65});
+ };
+ show('network');
+ requestAnimationFrame(()=>{if(railMap){railMap.invalidateSize(true);renderNetwork();requestAnimationFrame(draw);}});
+}
+function renderRoutes(){
+ const from=$('railFrom').value.trim(),to=$('railTo').value.trim(),box=$('railTransferResults');box.innerHTML='';
+ const found=findRoutes(from,to);
+ if(!found.length){box.innerHTML='<div class="rail-empty">経路が見つかりません。駅名や登録区間を確認してください。</div>';return;}
+ found.forEach((r,i)=>{
+  const card=document.createElement('div');card.className='rail-result';
+  const top=document.createElement('div');top.className='rail-result-top';
+  const b=document.createElement('b');b.textContent='候補 '+(i+1);
+  const badge=document.createElement('span');badge.className='rail-badge';badge.textContent=r.transfers+'回乗換';top.append(b,badge);
+  const h=document.createElement('h3');h.textContent='合計 約'+Math.round(r.time)+'分';
+  const summary=document.createElement('p');summary.className='rail-muted';summary.textContent='駅間移動 約'+r.trainMin+'分 ／ 駅外乗換の徒歩 '+r.walkMin+'分';
+  const steps=document.createElement('div');steps.className='rail-steps';
+  r.steps.forEach((st,stepIndex)=>{const d=document.createElement('div');d.className='rail-step';d.style.setProperty('--step-index',stepIndex);d.style.setProperty('--step-color',st.type==='outside'?'#d79b32':color(st.line));d.textContent=st.type==='outside'?'駅外乗換：'+st.from+' → '+st.to+'（徒歩約'+st.mins+'分）':st.line+'：'+st.from+' → '+st.to+(st.extra?'（駅内乗換 約'+st.extra+'分）':'');steps.append(d);});
+  const path=document.createElement('p');path.className='rail-muted';path.textContent=r.path.join(' → ');
+  const mapBtn=document.createElement('button');mapBtn.type='button';mapBtn.className='soft route-map-button';mapBtn.textContent='この経路を地図で見る';mapBtn.addEventListener('click',()=>showRouteOnMap(r));
+  card.append(top,h,summary,steps,path,mapBtn);box.append(card);
+ });
+}
 document.addEventListener('rail-map-show',()=>{requestAnimationFrame(()=>{if(railMap)railMap.invalidateSize(true);renderNetwork();});});
 $('railCompany').addEventListener('change',renderNetwork);$('railSearch').addEventListener('input',renderNetwork);$('railStationSelect').addEventListener('change',renderStation);$('railFavoritesSelect').addEventListener('change',e=>{if(e.target.value){stationInput.value=e.target.value;show('station');renderStation();}});$('railFind').addEventListener('click',renderRoutes);$('railSwap').addEventListener('click',()=>{const a=$('railFrom').value;$('railFrom').value=$('railTo').value;$('railTo').value=a;});renderFavorites();renderNetwork();
 })();
