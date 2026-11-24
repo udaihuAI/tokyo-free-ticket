@@ -448,6 +448,35 @@ button:hover:after{animation:premium-button-sheen .8s ease}
   .rail-network-canvas .leaflet-overlay-pane path{transition:none!important}
 }
 
+
+/* Premium map interaction pass 04 */
+#railNetwork .leaflet-container{cursor:grab}
+#railNetwork .leaflet-container:active{cursor:grabbing}
+#railNetwork .leaflet-control-zoom a{
+  width:38px;height:38px;line-height:36px;font-size:20px;
+  border-radius:11px!important;margin:5px 0;
+  border:1px solid rgba(120,147,190,.28)!important;
+  box-shadow:0 4px 13px rgba(20,43,78,.14);
+  transition:transform .18s ease,box-shadow .18s ease,background .18s ease;
+}
+#railNetwork .leaflet-control-zoom a:hover{
+  transform:scale(1.06);box-shadow:0 7px 17px rgba(35,75,140,.2);
+}
+#railNetwork .leaflet-control-attribution{
+  padding:3px 6px;border-radius:7px 0 0 0;background:rgba(255,255,255,.78);
+  backdrop-filter:blur(8px);
+}
+#railNetwork .station-name-label{transition:background .18s ease,box-shadow .18s ease}
+#railNetwork .leaflet-marker-icon:hover .station-name-label,
+#railNetwork .station-name-label:hover{
+  background:#fff;border-color:rgba(57,121,239,.55);
+  box-shadow:0 3px 12px rgba(34,86,170,.2);
+}
+@media(prefers-reduced-motion:reduce){
+  #railNetwork .leaflet-control-zoom a,#railNetwork .station-name-label{transition:none!important}
+  #railNetwork .leaflet-control-zoom a:hover{transform:none}
+}
+
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -987,19 +1016,22 @@ function renderNetwork(){
   const seq=(stations[line]||'').split(',').filter(Boolean),pts=seq.map(n=>stationCoords[n]).filter(Boolean);
   if(pts.length>1){const layer=L.polyline(pts,{color:color(line),weight:4,opacity:0,lineJoin:'round'}).addTo(railMap);layer.bindTooltip(line,{sticky:true});railLineLayers.push(layer);requestAnimationFrame(()=>layer.setStyle({opacity:.84}));}
  });
- const seen=new Set(),bounds=[];
+ const seen=new Set(),bounds=[],matchedBounds=[];
  shown.forEach(line=>{
   if(line.startsWith('都営バス'))return;
   (stations[line]||'').split(',').filter(Boolean).forEach(name=>{
    const p=stationCoords[name];if(!p||seen.has(name))return;seen.add(name);bounds.push(p);
-   const match=q&&name.includes(q),inter=(byStation.get(name)||[]).filter(l=>shown.includes(l)).length>1;
+   const match=!!(q&&name.includes(q)),inter=(byStation.get(name)||[]).filter(l=>shown.includes(l)).length>1;if(match)matchedBounds.push(p);
    const marker=L.circleMarker(p,{radius:match?8:inter?6:4,color:match?'#17386e':inter?'#bd8610':'#314c70',weight:inter?3:1.5,fillColor:match?'#3276e8':inter?'#ffe18a':'#fff',fillOpacity:1}).addTo(railMap);
    marker.bindTooltip(name,{permanent:true,direction:'top',offset:[0,-5],opacity:.95,className:'station-name-label'});marker.on('click',()=>{stationInput.value=name;show('station');renderStation();});
    if(match)marker.openTooltip();railStationLayers.push(marker);
   });
  });
- $('railMapCount').textContent=shown.length+'路線・'+seen.size+'駅';
- if(bounds.length){railMap.fitBounds(L.latLngBounds(bounds),{padding:[28,28],maxZoom:12});}else{railMap.setView([35.68,139.76],11);}railMap.eachLayer(layer=>{if(layer.setStyle)layer.setStyle({});});
+ $('railMapCount').textContent=shown.length+'路線・'+seen.size+'駅'+(q?' ／ 検索一致 '+matchedBounds.length+'駅':'');
+ if(matchedBounds.length){railMap.fitBounds(L.latLngBounds(matchedBounds),{padding:[56,56],maxZoom:14,animate:true,duration:.55});}
+ else if(bounds.length){railMap.fitBounds(L.latLngBounds(bounds),{padding:[28,28],maxZoom:12,animate:true,duration:.55});}
+ else{railMap.setView([35.68,139.76],11,{animate:true,duration:.45});}
+ railMap.eachLayer(layer=>{if(layer.setStyle)layer.setStyle({});});
  setTimeout(()=>railMap.invalidateSize(),80);
 }
 function makeGraph(){const g=new Map(all.map(st=>[st,[]]));lines.forEach(line=>{const a=(stations[line]||'').split(',').filter(Boolean);for(let i=0;i<a.length-1;i++){g.get(a[i]).push({to:a[i+1],line,mins:3,type:'rail'});g.get(a[i+1]).push({to:a[i],line,mins:3,type:'rail'});}});external.forEach(([a,b,m])=>{g.get(a).push({to:b,line:null,mins:m,type:'outside'});g.get(b).push({to:a,line:null,mins:m,type:'outside'});});return g;}
