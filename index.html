@@ -342,6 +342,71 @@ button{min-height:42px}
  .card:hover,.trip:hover,.rail-result:hover{transform:none}
 }
 
+
+/* Premium motion pass 02 — restrained motion, no markup or logic changes */
+@keyframes premium-rise-in{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes premium-soft-glow{
+  0%,100%{filter:drop-shadow(0 0 0 rgba(68,125,239,0))}
+  50%{filter:drop-shadow(0 0 5px rgba(68,125,239,.22))}
+}
+@keyframes premium-button-sheen{
+  0%{transform:translateX(-130%) skewX(-18deg);opacity:0}
+  15%{opacity:.55}
+  55%,100%{transform:translateX(230%) skewX(-18deg);opacity:0}
+}
+@keyframes premium-node-pulse{
+  0%,100%{stroke-width:2;opacity:.9}
+  50%{stroke-width:4;opacity:1}
+}
+@keyframes premium-map-drift{
+  from{opacity:.72}
+  to{opacity:1}
+}
+.app-panel:not([hidden])>.card{
+  animation:premium-rise-in .48s cubic-bezier(.2,.7,.25,1) both;
+}
+.app-panel:not([hidden])>.card:nth-child(2){animation-delay:.045s}
+.app-panel:not([hidden])>.card:nth-child(3){animation-delay:.09s}
+.app-panel:not([hidden])>.card:nth-child(4){animation-delay:.135s}
+.app-panel:not([hidden])>.card:nth-child(5){animation-delay:.18s}
+.app-nav-btn,.rail-tab,.rail-line-card,.rail-station,.map-stop{
+  transition:transform .2s cubic-bezier(.2,.7,.25,1),box-shadow .2s ease,background-color .2s ease,border-color .2s ease;
+}
+.app-nav-btn:hover,.rail-tab:hover{transform:translateY(-2px)}
+.app-nav-btn:active,.rail-tab:active{transform:translateY(0) scale(.98)}
+button{position:relative;isolation:isolate;overflow:hidden}
+button:after{
+  content:"";position:absolute;z-index:-1;top:-40%;bottom:-40%;left:0;width:34%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.24),transparent);
+  transform:translateX(-130%) skewX(-18deg);pointer-events:none;
+}
+button:hover:after{animation:premium-button-sheen .8s ease}
+.primary:hover{box-shadow:0 9px 24px rgba(57,121,239,.28)}
+.rail-tab.active{box-shadow:0 5px 16px rgba(54,103,190,.15)}
+.rail-line-card:hover,.rail-station:hover,.map-stop:hover{transform:translateY(-2px)}
+.rail-network-canvas .rail-node circle{transition:r .22s ease,stroke-width .22s ease,filter .22s ease}
+.rail-network-canvas .rail-node:hover circle{filter:drop-shadow(0 0 5px rgba(58,120,235,.45));stroke-width:4}
+.rail-network-canvas .rail-node.active circle{animation:premium-node-pulse 1.8s ease-in-out infinite}
+#railNetwork .leaflet-marker-icon{transition:filter .2s ease}
+#railNetwork .leaflet-marker-icon:hover{filter:drop-shadow(0 2px 5px rgba(36,75,140,.38))}
+.map-stop.selected .dot{animation:premium-soft-glow 1.8s ease-in-out infinite}
+.rail-result{animation:premium-rise-in .36s ease both}
+.verdict{animation:premium-rise-in .32s ease both}
+.stat b{transition:color .25s ease,text-shadow .25s ease}
+.stat:hover b{color:var(--premium-blue);text-shadow:0 3px 14px rgba(57,121,239,.16)}
+.guide-card summary{transition:color .2s ease,background .2s ease}
+.guide-card[open] .guide-content{animation:premium-rise-in .3s ease both}
+@media(prefers-reduced-motion:reduce){
+  .app-panel:not([hidden])>.card,.rail-result,.verdict,.guide-card[open] .guide-content{animation:none!important}
+  button:hover:after{animation:none!important}
+  .app-nav-btn,.rail-tab,.rail-line-card,.rail-station,.map-stop,.rail-network-canvas .rail-node circle{transition:none!important}
+  .app-nav-btn:hover,.rail-tab:hover,.rail-line-card:hover,.rail-station:hover,.map-stop:hover{transform:none}
+  .rail-network-canvas .rail-node.active circle,.map-stop.selected .dot{animation:none!important}
+}
+
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
