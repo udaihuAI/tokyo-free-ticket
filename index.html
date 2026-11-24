@@ -295,6 +295,12 @@ main.wrap,.app-layout,.app-panel,#mapAppPanel,#coverageMap,#railExplorer{width:1
 #railNetwork{width:100%;height:620px;min-height:420px;max-width:100%;position:relative;overflow:hidden}
 #railNetwork .leaflet-container{width:100%;height:100%;min-width:0;min-height:420px}
 @media(max-width:700px){#railRouteView .map-toolbar{grid-template-columns:minmax(0,1fr)}#railRouteView .map-toolbar button{width:100%}}
+
+/* Map tiles and station-name labels */
+#railNetwork .leaflet-tile{max-width:none!important;max-height:none!important;width:256px!important;height:256px!important}
+#railNetwork .leaflet-tile-container img{max-width:none!important}
+#railNetwork .station-name-label{background:rgba(255,255,255,.94);border:1px solid rgba(31,58,92,.22);border-radius:4px;box-shadow:0 1px 4px rgba(15,35,65,.22);color:#142744;font-size:10px;font-weight:800;padding:2px 4px;white-space:nowrap}
+#railNetwork .station-name-label:before{display:none}
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -827,7 +833,7 @@ let railMap=null,railLineLayers=[],railStationLayers=[];
 function renderNetwork(){
  const shown=visibleLines(),q=$('railSearch').value.trim(),box=network;
  if(!window.L){box.innerHTML='<div class="rail-empty">地図ライブラリを読み込めませんでした。ページを再読み込みしてください。</div>';return;}
- if(!railMap){box.innerHTML='';railMap=L.map(box,{scrollWheelZoom:false,zoomControl:true,attributionControl:false,preferCanvas:true,renderer:L.canvas({padding:0.5})}).setView([35.68,139.76],11);L.control.attribution({prefix:false}).addTo(railMap);}
+ if(!railMap){box.innerHTML='';railMap=L.map(box,{scrollWheelZoom:false,zoomControl:true,attributionControl:false,preferCanvas:true,renderer:L.canvas({padding:0.5})}).setView([35.68,139.76],11);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(railMap);L.control.attribution({prefix:false}).addTo(railMap);}
  railLineLayers.forEach(x=>railMap.removeLayer(x));railStationLayers.forEach(x=>railMap.removeLayer(x));railLineLayers=[];railStationLayers=[];
  shown.forEach(line=>{
   if(line.startsWith('都営バス'))return;
@@ -841,7 +847,7 @@ function renderNetwork(){
    const p=stationCoords[name];if(!p||seen.has(name))return;seen.add(name);bounds.push(p);
    const match=q&&name.includes(q),inter=(byStation.get(name)||[]).filter(l=>shown.includes(l)).length>1;
    const marker=L.circleMarker(p,{radius:match?8:inter?6:4,color:match?'#17386e':inter?'#bd8610':'#314c70',weight:inter?3:1.5,fillColor:match?'#3276e8':inter?'#ffe18a':'#fff',fillOpacity:1}).addTo(railMap);
-   marker.bindTooltip(name,{direction:'top',offset:[0,-4]});marker.on('click',()=>{stationInput.value=name;show('station');renderStation();});
+   marker.bindTooltip(name,{permanent:true,direction:'top',offset:[0,-5],opacity:.95,className:'station-name-label'});marker.on('click',()=>{stationInput.value=name;show('station');renderStation();});
    if(match)marker.openTooltip();railStationLayers.push(marker);
   });
  });
