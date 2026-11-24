@@ -486,6 +486,9 @@ button:hover:after{animation:premium-button-sheen .8s ease}
 
 /* Phase 9: station-to-route selection and transfer-time estimator */
 .station-transfer-tool{margin-top:20px;padding:16px;border:1px solid var(--glass-border);border-radius:16px;background:var(--glass-soft)}.station-transfer-tool h3{font-size:16px;margin:0 0 7px}.station-transfer-grid{margin-top:12px}.station-transfer-answer{display:grid;gap:8px;margin-top:12px}.station-transfer-answer strong{font-size:28px;color:var(--accent,#2864dc)}.station-transfer-answer p{margin:0}.rail-map-popup{gap:8px}.rail-map-popup button{white-space:normal}
+
+/* Phase 10: editable station-specific transfer estimates */
+#transferMinutesInput{max-width:180px}.station-transfer-tool .actions button{min-width:130px}.station-transfer-answer strong{letter-spacing:-.03em}
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -556,7 +559,8 @@ button:hover:after{animation:premium-button-sheen .8s ease}
    <h3 id="stationTransferTitle">駅内乗り換え時間の目安を検索</h3>
    <p class="rail-muted">同じ駅で路線を乗り換える場合の目安を確認できます。現在の経路検索と同じ暫定基準（乗換1回につき約5分）を表示します。駅・路線ごとの実測値ではありません。</p>
    <div class="grid station-transfer-grid"><div class="field"><label for="transferStation">乗換駅</label><select id="transferStation"><option value="">駅を選択</option></select></div><div class="field"><label for="transferFromLine">乗換前の路線</label><select id="transferFromLine"><option value="">先に駅を選択</option></select></div><div class="field"><label for="transferToLine">乗換後の路線</label><select id="transferToLine"><option value="">先に駅を選択</option></select></div></div>
-   <div class="actions"><button class="primary" id="transferEstimateBtn" type="button">乗換時間を調べる</button></div>
+   <div class="grid station-transfer-grid"><div class="field"><label for="transferMinutesInput">この組み合わせの乗換時間（分）</label><input id="transferMinutesInput" type="number" min="1" max="60" step="1" value="5"></div></div>
+   <div class="actions"><button class="primary" id="transferEstimateBtn" type="button">乗換時間を確認</button><button class="soft" id="transferSaveBtn" type="button">この時間を保存</button><button class="soft" id="transferResetBtn" type="button">初期値に戻す</button></div>
    <div class="rail-empty" id="transferEstimateResult" aria-live="polite">駅と乗換前・乗換後の路線を選択してください。</div>
   </section>
   <p class="rail-muted">経路検索は登録済み路線と駅外乗換データを使った参考ルートです。駅外乗換が含まれる場合は「徒歩約○分」と表示し、合計所要時間にも加算します。徒歩時間・駅間時間は概算で、実際の歩行経路・信号待ち・時刻表・構内移動時間とは異なる場合があります。データ未登録の区間は検索できません。</p>
@@ -1033,25 +1037,49 @@ function show(v){['network','route','station','transfer'].forEach(x=>$('rail'+x[
 document.querySelectorAll('.rail-tab').forEach(b=>b.addEventListener('click',()=>show(b.dataset.railView)));
 all.forEach(st=>{let o=document.createElement('option');o.value=st;$('railStationList').append(o);o=document.createElement('option');o.value=st;o.textContent=st;stationInput.append(o);});
 const transferStation=$('transferStation'),transferFromLine=$('transferFromLine'),transferToLine=$('transferToLine');
+let customTransferTimes={};try{customTransferTimes=JSON.parse(localStorage.getItem('tokyoRailTransferTimes')||'{}')||{};}catch(e){}
+const transferKey=(st,a,b)=>[st,a,b].sort((x,y)=>x.localeCompare(y,'ja')).join('::');
+function getTransferMinutes(st,a,b){const saved=customTransferTimes[transferKey(st,a,b)];return Number.isFinite(saved)?saved:5;}
+function validTransferSelection(){const st=transferStation.value,a=transferFromLine.value,b=transferToLine.value,served=byStation.get(st)||[];return !!(st&&a&&b&&a!==b&&served.includes(a)&&served.includes(b));}
+function refreshTransferValue(){
+ const st=transferStation.value,a=transferFromLine.value,b=transferToLine.value,input=$('transferMinutesInput');
+ if(validTransferSelection()){input.value=getTransferMinutes(st,a,b);}
+ else input.value='5';
+}
 all.filter(st=>(byStation.get(st)||[]).length>1).forEach(st=>{const o=document.createElement('option');o.value=st;o.textContent=st+'（'+byStation.get(st).length+'路線）';transferStation.append(o);});
 function populateTransferLines(){
  const st=transferStation.value,served=byStation.get(st)||[];
  [transferFromLine,transferToLine].forEach(sel=>{sel.innerHTML='<option value="">路線を選択</option>';served.forEach(line=>{const o=document.createElement('option');o.value=line;o.textContent=line;sel.append(o);});});
- $('transferEstimateResult').textContent='乗換前・乗換後の路線を選択してください。';
+ refreshTransferValue();$('transferEstimateResult').className='rail-empty';$('transferEstimateResult').textContent='乗換前・乗換後の路線を選択してください。';
 }
 transferStation.addEventListener('change',populateTransferLines);
-$('transferEstimateBtn').addEventListener('click',()=>{
- const st=transferStation.value,a=transferFromLine.value,b=transferToLine.value,result=$('transferEstimateResult');
- if(!st||!a||!b){result.className='rail-empty';result.textContent='駅と2つの路線を選択してください。';return;}
- if(a===b){result.className='rail-empty';result.textContent='異なる路線を選択してください。';return;}
- const served=byStation.get(st)||[];
- if(!served.includes(a)||!served.includes(b)){result.className='rail-empty';result.textContent='選択した2路線は、この駅での乗り換え対象として登録されていません。';return;}
- result.className='rail-result station-transfer-answer';
- result.innerHTML='';
+[transferFromLine,transferToLine].forEach(sel=>sel.addEventListener('change',refreshTransferValue));
+function showTransferEstimate(){
+ const st=transferStation.value,a=transferFromLine.value,b=transferToLine.value,result=$('transferEstimateResult'),minutes=Number($('transferMinutesInput').value);
+ if(!validTransferSelection()){result.className='rail-empty';result.textContent='同じ駅に乗り入れる異なる2路線を選択してください。';return;}
+ if(!Number.isInteger(minutes)||minutes<1||minutes>60){result.className='rail-empty';result.textContent='乗換時間は1〜60分の整数で入力してください。';return;}
+ result.className='rail-result station-transfer-answer';result.innerHTML='';
  const title=document.createElement('b');title.textContent=st+' の乗り換え目安';
- const time=document.createElement('strong');time.textContent='約5分';
- const note=document.createElement('p');note.className='rail-muted';note.textContent=a+' → '+b+' の乗り換え時間として、現在の経路検索で使っている共通目安を表示しています。ホーム間距離・改札内外・混雑・エレベーター移動など駅ごとの差は反映していません。';
+ const time=document.createElement('strong');time.textContent='約'+minutes+'分';
+ const isCustom=Object.prototype.hasOwnProperty.call(customTransferTimes,transferKey(st,a,b));
+ const note=document.createElement('p');note.className='rail-muted';note.textContent=a+' → '+b+' ／ '+(isCustom?'保存済みの個別設定':'共通初期値')+'。この設定はこのブラウザに保存され、経路検索の乗換時間にも反映されます。実測値ではないため、実際の移動時間とは異なる場合があります。';
  result.append(title,time,note);
+}
+$('transferEstimateBtn').addEventListener('click',showTransferEstimate);
+$('transferSaveBtn').addEventListener('click',()=>{
+ const st=transferStation.value,a=transferFromLine.value,b=transferToLine.value,minutes=Number($('transferMinutesInput').value),result=$('transferEstimateResult');
+ if(!validTransferSelection()){result.className='rail-empty';result.textContent='同じ駅に乗り入れる異なる2路線を選択してください。';return;}
+ if(!Number.isInteger(minutes)||minutes<1||minutes>60){result.className='rail-empty';result.textContent='乗換時間は1〜60分の整数で入力してください。';return;}
+ customTransferTimes[transferKey(st,a,b)]=minutes;
+ try{localStorage.setItem('tokyoRailTransferTimes',JSON.stringify(customTransferTimes));}
+ catch(e){result.className='rail-empty';result.textContent='ブラウザに保存できませんでした。保存容量やプライベートブラウズ設定を確認してください。';return;}
+ showTransferEstimate();
+});
+$('transferResetBtn').addEventListener('click',()=>{
+ if(!validTransferSelection())return;
+ delete customTransferTimes[transferKey(transferStation.value,transferFromLine.value,transferToLine.value)];
+ try{localStorage.setItem('tokyoRailTransferTimes',JSON.stringify(customTransferTimes));}catch(e){}
+ $('transferMinutesInput').value=5;showTransferEstimate();
 });
 function renderFavorites(){const box=$('railFavorites'),sel=$('railFavoritesSelect');box.innerHTML='';sel.innerHTML='<option value="">お気に入り駅を選択</option>';favorites.forEach(st=>{let o=document.createElement('option');o.value=st;o.textContent=st;sel.append(o);let b=document.createElement('button');b.type='button';b.className='rail-station';b.textContent='★ '+st;b.onclick=()=>{stationInput.value=st;show('station');renderStation();};box.append(b);});}
 function renderStation(){
@@ -1144,7 +1172,7 @@ function renderNetwork(){
 }
 function makeGraph(){const g=new Map(all.map(st=>[st,[]]));lines.forEach(line=>{const a=(stations[line]||'').split(',').filter(Boolean);for(let i=0;i<a.length-1;i++){g.get(a[i]).push({to:a[i+1],line,mins:3,type:'rail'});g.get(a[i+1]).push({to:a[i],line,mins:3,type:'rail'});}});external.forEach(([a,b,m])=>{g.get(a).push({to:b,line:null,mins:m,type:'outside'});g.get(b).push({to:a,line:null,mins:m,type:'outside'});});return g;}
 const graph=makeGraph();
-function findRoutes(from,to){if(!graph.has(from)||!graph.has(to)||from===to)return[];let q=[{st:from,line:null,path:[from],steps:[],time:0,transfers:0,walkMin:0,trainMin:0}],done=[],best=new Map();let loops=0;while(q.length&&done.length<3&&loops++<16000){q.sort((a,b)=>a.time-b.time);const c=q.shift();if(c.st===to){done.push(c);continue;}if(c.path.length>40)continue;for(const e of graph.get(c.st)){if(c.path.includes(e.to))continue;const inside=e.type==='rail'&&c.line&&c.line!==e.line,extra=inside?5:0,nt=c.time+e.mins+extra,nl=e.type==='outside'?null:e.line,key=e.to+'|'+(nl||'-');if((best.get(key)??Infinity)<nt)continue;best.set(key,nt);q.push({st:e.to,line:nl,path:[...c.path,e.to],steps:[...c.steps,{from:c.st,to:e.to,line:e.line,type:e.type,mins:e.mins,extra}],time:nt,walkMin:c.walkMin+(e.type==='outside'?e.mins:0),trainMin:c.trainMin+(e.type==='rail'?e.mins:0),transfers:c.transfers+(inside||e.type==='outside'?1:0)});}}return done;}
+function findRoutes(from,to){if(!graph.has(from)||!graph.has(to)||from===to)return[];let q=[{st:from,line:null,path:[from],steps:[],time:0,transfers:0,walkMin:0,trainMin:0}],done=[],best=new Map();let loops=0;while(q.length&&done.length<3&&loops++<16000){q.sort((a,b)=>a.time-b.time);const c=q.shift();if(c.st===to){done.push(c);continue;}if(c.path.length>40)continue;for(const e of graph.get(c.st)){if(c.path.includes(e.to))continue;const inside=e.type==='rail'&&c.line&&c.line!==e.line,extra=inside?getTransferMinutes(c.st,c.line,e.line):0,nt=c.time+e.mins+extra,nl=e.type==='outside'?null:e.line,key=e.to+'|'+(nl||'-');if((best.get(key)??Infinity)<nt)continue;best.set(key,nt);q.push({st:e.to,line:nl,path:[...c.path,e.to],steps:[...c.steps,{from:c.st,to:e.to,line:e.line,type:e.type,mins:e.mins,extra}],time:nt,walkMin:c.walkMin+(e.type==='outside'?e.mins:0),trainMin:c.trainMin+(e.type==='rail'?e.mins:0),transfers:c.transfers+(inside||e.type==='outside'?1:0)});}}return done;}
 function showRouteOnMap(route){
  if(!window.L)return;
  const draw=()=>{
@@ -1176,7 +1204,7 @@ function renderRoutes(){
   const h=document.createElement('h3');h.textContent='合計 約'+Math.round(r.time)+'分';
   const summary=document.createElement('p');summary.className='rail-muted';summary.textContent='駅間移動 約'+r.trainMin+'分 ／ 駅外乗換の徒歩 '+r.walkMin+'分';
   const steps=document.createElement('div');steps.className='rail-steps';
-  r.steps.forEach((st,stepIndex)=>{const d=document.createElement('div');d.className='rail-step';d.style.setProperty('--step-index',stepIndex);d.style.setProperty('--step-color',st.type==='outside'?'#d79b32':color(st.line));d.textContent=st.type==='outside'?'駅外乗換：'+st.from+' → '+st.to+'（徒歩約'+st.mins+'分）':st.line+'：'+st.from+' → '+st.to+(st.extra?'（駅内乗換 約'+st.extra+'分）':'');steps.append(d);});
+  r.steps.forEach((st,stepIndex)=>{const d=document.createElement('div');d.className='rail-step';d.style.setProperty('--step-index',stepIndex);d.style.setProperty('--step-color',st.type==='outside'?'#d79b32':color(st.line));d.textContent=st.type==='outside'?'駅外乗換：'+st.from+' → '+st.to+'（徒歩約'+st.mins+'分）':st.line+'：'+st.from+' → '+st.to+(st.extra?'（'+st.extra+'分）':'');steps.append(d);});
   const path=document.createElement('p');path.className='rail-muted';path.textContent=r.path.join(' → ');
   const mapBtn=document.createElement('button');mapBtn.type='button';mapBtn.className='soft route-map-button';mapBtn.textContent='この経路を地図で見る';mapBtn.addEventListener('click',()=>showRouteOnMap(r));
   card.append(top,h,summary,steps,path,mapBtn);box.append(card);
