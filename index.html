@@ -1041,7 +1041,9 @@ document.querySelectorAll('.rail-tab').forEach(b=>b.addEventListener('click',()=
 all.forEach(st=>{let o=document.createElement('option');o.value=st;$('railStationList').append(o);o=document.createElement('option');o.value=st;o.textContent=st;stationInput.append(o);});
 const transferStation=$('transferStation'),transferFromLine=$('transferFromLine'),transferToLine=$('transferToLine');
 let customTransferTimes={};try{customTransferTimes=JSON.parse(localStorage.getItem('tokyoRailTransferTimes')||'{}')||{};}catch(e){}
-const transferKey=(st,a,b)=>[st,a,b].sort((x,y)=>x.localeCompare(y,'ja')).join('::');
+const transferKey=(st,a,b)=>st+'::'+[a,b].sort((x,y)=>x.localeCompare(y,'ja')).join('::');
+// Migrate keys saved by the earlier all-three-fields sorting format.
+{const migrated={};Object.entries(customTransferTimes).forEach(([key,value])=>{const parts=key.split('::');if(parts.length!==3)return;const st=parts.find(x=>all.includes(x)),ls=parts.filter(x=>lines.includes(x));if(st&&ls.length===2)migrated[transferKey(st,ls[0],ls[1])]=value;else migrated[key]=value;});customTransferTimes=migrated;try{localStorage.setItem('tokyoRailTransferTimes',JSON.stringify(customTransferTimes));}catch(e){}}
 function getTransferMinutes(st,a,b){const saved=customTransferTimes[transferKey(st,a,b)];return Number.isFinite(saved)?saved:5;}
 function validTransferSelection(){const st=transferStation.value,a=transferFromLine.value,b=transferToLine.value,served=byStation.get(st)||[];return !!(st&&a&&b&&a!==b&&served.includes(a)&&served.includes(b));}
 function refreshTransferValue(){
