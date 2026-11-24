@@ -492,6 +492,9 @@ button:hover:after{animation:premium-button-sheen .8s ease}
 
 /* Phases 11-13 */
 .transfer-manager,.route-library{margin-top:18px;padding:15px;border:1px solid var(--glass-border);border-radius:15px;background:var(--glass-soft)}.transfer-manager-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.transfer-manager h4,.route-library h3,.route-library h4{margin:0 0 6px}.route-library-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px}.transfer-saved-list,.route-library-list{display:grid;gap:8px;margin-top:10px}.transfer-saved-row,.route-library-item{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:11px;border:1px solid var(--glass-border);border-radius:11px;background:var(--glass)}.transfer-saved-row button,.route-library-item button{padding:6px 10px;font-size:12px}.route-library-item span{display:block;font-size:12px;color:var(--page-muted)}@media(max-width:620px){.route-library-columns{grid-template-columns:1fr}}
+
+/* Phase 15: mobile and touch usability */
+.rail-tabs{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:3px 2px 8px}.rail-tabs>*{flex:0 0 auto}.route-library-item,.transfer-saved-row{min-width:0;overflow-wrap:anywhere}.route-library-item button,.transfer-saved-row button,.route-map-button{min-height:42px}.station-route-actions{display:flex;flex-wrap:wrap;gap:8px}.station-route-actions button{min-height:42px}input,select,button{max-width:100%}#railTransferView .grid{min-width:0}@media(max-width:640px){main.wrap{padding-left:12px;padding-right:12px}.rail-result{padding:14px}.rail-result-top{align-items:flex-start;gap:8px}.rail-steps{overflow-wrap:anywhere}.route-library-item{align-items:flex-start}.route-library-item button,.transfer-saved-row button{flex:1 1 auto}.station-route-actions button{flex:1 1 100%}#railNetwork{height:min(62vh,520px);min-height:320px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></head>
 <body>
 <header><div class="wrap"><h1>東京フリーきっぷ 元取りチェッカー v25</h1><p>乗車区間の通常運賃と東京フリーきっぷの価格を比較。未整備データは推測せず、確認が必要な区間として表示します。</p></div></header>
@@ -1177,7 +1180,28 @@ function renderNetwork(){
 }
 function makeGraph(){const g=new Map(all.map(st=>[st,[]]));lines.forEach(line=>{const a=(stations[line]||'').split(',').filter(Boolean);for(let i=0;i<a.length-1;i++){g.get(a[i]).push({to:a[i+1],line,mins:3,type:'rail'});g.get(a[i+1]).push({to:a[i],line,mins:3,type:'rail'});}});external.forEach(([a,b,m])=>{g.get(a).push({to:b,line:null,mins:m,type:'outside'});g.get(b).push({to:a,line:null,mins:m,type:'outside'});});return g;}
 const graph=makeGraph();
-function findRoutes(from,to){if(!graph.has(from)||!graph.has(to)||from===to)return[];let q=[{st:from,line:null,path:[from],steps:[],time:0,transfers:0,walkMin:0,trainMin:0}],done=[],best=new Map();let loops=0;while(q.length&&done.length<5&&loops++<30000){q.sort((a,b)=>a.time-b.time);const c=q.shift();if(c.st===to){done.push(c);continue;}if(c.path.length>40)continue;for(const e of graph.get(c.st)){if(c.path.includes(e.to))continue;const inside=e.type==='rail'&&c.line&&c.line!==e.line,extra=inside?getTransferMinutes(c.st,c.line,e.line):0,nt=c.time+e.mins+extra,nl=e.type==='outside'?null:e.line,key=e.to+'|'+(nl||'-');if((best.get(key)??Infinity)<=nt)continue;best.set(key,nt);q.push({st:e.to,line:nl,path:[...c.path,e.to],steps:[...c.steps,{from:c.st,to:e.to,line:e.line,type:e.type,mins:e.mins,extra}],time:nt,walkMin:c.walkMin+(e.type==='outside'?e.mins:0),trainMin:c.trainMin+(e.type==='rail'?e.mins:0),transfers:c.transfers+(inside||e.type==='outside'?1:0)});}}return done;}
+function findRoutes(from,to){
+ if(!graph.has(from)||!graph.has(to)||from===to)return[];
+ const queue=[{st:from,line:null,path:[from],steps:[],time:0,transfers:0,walkMin:0,trainMin:0}],results=[],seen=new Map();
+ let loops=0;const maxLoops=45000,maxResults=5,maxDepth=42,alternativesPerState=10;
+ while(queue.length&&results.length<maxResults&&loops++<maxLoops){
+  queue.sort((a,b)=>a.time-b.time||a.transfers-b.transfers||a.path.length-b.path.length);
+  const cur=queue.shift();
+  if(cur.st===to){const signature=cur.path.join('>');if(!results.some(x=>x.path.join('>')===signature))results.push(cur);continue;}
+  if(cur.path.length>=maxDepth)continue;
+  for(const edge of graph.get(cur.st)||[]){
+   if(cur.path.includes(edge.to))continue;
+   const inside=edge.type==='rail'&&cur.line&&cur.line!==edge.line;
+   const extra=inside?getTransferMinutes(cur.st,cur.line,edge.line):0;
+   const nextLine=edge.type==='outside'?null:edge.line;
+   const time=cur.time+edge.mins+extra,state=edge.to+'|'+(nextLine||'-'),prior=seen.get(state)||[];
+   if(prior.length>=alternativesPerState&&prior[prior.length-1]<=time)continue;
+   const next={st:edge.to,line:nextLine,path:[...cur.path,edge.to],steps:[...cur.steps,{from:cur.st,to:edge.to,line:edge.line,type:edge.type,mins:edge.mins,extra}],time,walkMin:cur.walkMin+(edge.type==='outside'?edge.mins:0),trainMin:cur.trainMin+(edge.type==='rail'?edge.mins:0),transfers:cur.transfers+(inside||edge.type==='outside'?1:0)};
+   seen.set(state,[...prior,time].sort((a,b)=>a-b).slice(0,alternativesPerState));queue.push(next);
+  }
+ }
+ return results;
+}
 function showRouteOnMap(route){
  if(!window.L)return;
  const draw=()=>{
@@ -1201,7 +1225,7 @@ function renderRoutes(){
  const from=$('railFrom').value.trim(),to=$('railTo').value.trim(),box=$('railTransferResults');box.innerHTML='';
  const found=findRoutes(from,to);
  if(found.length)addRouteHistory(from,to);
- if(!found.length{box.innerHTML='<div class="rail-empty">経路が見つかりません。駅名や登録区間を確認してください。</div>';return;}
+ if(!found.length){box.innerHTML='<div class="rail-empty">経路が見つかりません。駅名や登録区間を確認してください。</div>';return;}
  found.forEach((r,i)=>{
   const card=document.createElement('div');card.className='rail-result';
   const top=document.createElement('div');top.className='rail-result-top';
